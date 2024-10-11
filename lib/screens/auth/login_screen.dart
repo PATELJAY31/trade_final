@@ -159,30 +159,66 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      // Make the AppBar transparent to blend with the gradient
       appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
         title: Text('Login'),
       ),
-      body: Padding(
-        padding: EdgeInsets.all(16.0),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            children: [
-              // Email Field
-              _buildEmailField(),
-              SizedBox(height: 20),
-              // Password Field
-              _buildPasswordField(),
-              SizedBox(height: 30),
-              // Login Button
-              _buildLoginButton(),
-              SizedBox(height: 20),
-              // Google Login Button
-              _buildGoogleLoginButton(),
-              SizedBox(height: 20),
-              // Register Text
-              _buildRegisterText(),
+      extendBodyBehindAppBar: true,
+      body: Container(
+        decoration: BoxDecoration(
+          // Background gradient
+          gradient: LinearGradient(
+            colors: [
+              Color(0xFF8E2DE2), // Purple
+              Color(0xFF4A00E0), // Dark Purple
             ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
+        child: Center(
+          child: SingleChildScrollView(
+            padding: EdgeInsets.symmetric(horizontal: 24.0),
+            child: Card(
+              color: Colors.white.withOpacity(0.8),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16.0),
+              ),
+              elevation: 8,
+              child: Padding(
+                padding: EdgeInsets.all(16.0),
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // App Logo
+                      Image.asset(
+                        'assets/images/logo.png',
+                        height: 100,
+                      ),
+                      SizedBox(height: 20),
+                      // Email Field
+                      _buildEmailField(),
+                      SizedBox(height: 20),
+                      // Password Field
+                      _buildPasswordField(),
+                      SizedBox(height: 30),
+                      // Login Button
+                      _buildLoginButton(),
+                      SizedBox(height: 20),
+                      // Google Login Button
+                      _buildGoogleLoginButton(),
+                      SizedBox(height: 20),
+                      // Register Text
+                      _buildRegisterText(),
+                    ],
+                  ),
+                ),
+              ),
+            ),
           ),
         ),
       ),

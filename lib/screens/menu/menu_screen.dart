@@ -9,6 +9,7 @@ import '../messaging/conversations_screen.dart';
 import '../search/search_screen.dart';
 import '../profile/profile_screen.dart';
 import '../product/add_product_screen.dart';
+import '../../utils/gradients.dart'; // Import the gradients utility
 
 class MenuScreen extends StatefulWidget {
   @override
@@ -104,143 +105,159 @@ class _MenuScreenState extends State<MenuScreen> {
   }
 
   Widget _buildProductGrid() {
-    return Padding(
-      padding: EdgeInsets.all(8.0),
-      child: GridView.builder(
-        itemCount: _products.length,
-        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2,
-          childAspectRatio: 0.75,
-        ),
-        itemBuilder: (context, index) {
-          final product = _products[index];
-          final authService = Provider.of<AuthService>(context, listen: false);
-          final currentUser = authService.currentUser;
+    return Container(
+      decoration: BoxDecoration(
+        gradient: AppGradients.backgroundGradient, // Apply the background gradient
+      ),
+      child: Padding(
+        padding: EdgeInsets.all(8.0),
+        child: GridView.builder(
+          itemCount: _products.length,
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 2,
+            childAspectRatio: 0.75,
+            crossAxisSpacing: 8,
+            mainAxisSpacing: 8,
+          ),
+          itemBuilder: (context, index) {
+            final product = _products[index];
+            final authService = Provider.of<AuthService>(context, listen: false);
+            final currentUser = authService.currentUser;
 
-          // Determine if the current user is the seller
-          bool isSeller = product.sellerId == currentUser?.uid;
+            // Determine if the current user is the seller
+            bool isSeller = product.sellerId == currentUser?.uid;
 
-          return GestureDetector(
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => ProductDetailScreen(product: product),
-                ),
-              ).then((_) => _fetchProducts()); // Refresh after returning
-            },
-            child: Stack(
-              children: [
-                Card(
-                  elevation: 4.0,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
+            return GestureDetector(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => ProductDetailScreen(product: product),
                   ),
-                  child: Column(
-                    children: [
-                      // Product Image
-                      Expanded(
-                        child: product.imageUrl.isNotEmpty
-                            ? Image.network(
-                                product.imageUrl,
-                                fit: BoxFit.cover,
-                                width: double.infinity,
-                              )
-                            : Image.asset(
-                                'assets/images/default_product.png',
-                                fit: BoxFit.cover,
-                                width: double.infinity,
-                              ),
-                      ),
-                      SizedBox(height: 8),
-                      // Product Title
-                      Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 8.0),
-                        child: Text(
-                          product.title,
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      SizedBox(height: 4),
-                      // Product Price
-                      Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 8.0),
-                        child: Text(
-                          '\$${product.price.toStringAsFixed(2)}',
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Colors.green,
+                ).then((_) => _fetchProducts()); // Refresh after returning
+              },
+              child: Stack(
+                children: [
+                  Card(
+                    color: Colors.white.withOpacity(0.9), // Semi-transparent card
+                    elevation: 4.0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(15),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        // Product Image
+                        Expanded(
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.vertical(top: Radius.circular(15)),
+                            child: product.imageUrl.isNotEmpty
+                                ? Image.network(
+                                    product.imageUrl,
+                                    fit: BoxFit.cover,
+                                    width: double.infinity,
+                                  )
+                                : Image.asset(
+                                    'assets/images/default_product.png',
+                                    fit: BoxFit.cover,
+                                    width: double.infinity,
+                                  ),
                           ),
                         ),
-                      ),
-                      SizedBox(height: 8),
-                      // Buy Now Button
-                      isSeller
-                          ? Padding(
-                              padding: EdgeInsets.symmetric(horizontal: 8.0),
-                              child: ElevatedButton(
-                                onPressed: () {
-                                  // Sellers cannot buy their own products
-                                },
-                                child: Text('Your Product'),
-                                style: ElevatedButton.styleFrom(
-                                  minimumSize: Size(double.infinity, 36),
-                                  backgroundColor: Colors.grey, // Updated from 'primary'
-                                ),
-                                
-                              ),
-                            )
-                          : product.isSold
-                              ? Padding(
-                                  padding: EdgeInsets.symmetric(horizontal: 8.0),
-                                  child: ElevatedButton(
-                                    onPressed: null, // Disable button
-                                    child: Text('Sold'),
-                                    style: ElevatedButton.styleFrom(
-                                      minimumSize: Size(double.infinity, 36),
-                                      backgroundColor: Colors.redAccent, // Updated from 'primary'
+                        SizedBox(height: 8),
+                        // Product Title
+                        Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 8.0),
+                          child: Text(
+                            product.title,
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        SizedBox(height: 4),
+                        // Product Price
+                        Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 8.0),
+                          child: Text(
+                            '\$${product.price.toStringAsFixed(2)}',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.green,
+                            ),
+                          ),
+                        ),
+                        SizedBox(height: 8),
+                        // Buy Now Button
+                        Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 8.0),
+                          child: isSeller
+                              ? ElevatedButton(
+                                  onPressed: null, // Disable button
+                                  child: Text('Your Product'),
+                                  style: ElevatedButton.styleFrom(
+                                    minimumSize: Size(double.infinity, 36),
+                                    backgroundColor: Colors.grey, // Updated from 'primary'
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(8),
                                     ),
                                   ),
                                 )
-                              : Padding(
-                                  padding: EdgeInsets.symmetric(horizontal: 8.0),
-                                  child: ElevatedButton(
-                                    onPressed: () => _buyNow(context, product),
-                                    child: Text('Buy Now'),
-                                    style: ElevatedButton.styleFrom(
-                                      minimumSize: Size(double.infinity, 36),
-                                      backgroundColor: Colors.redAccent, // Updated from 'primary'
+                              : product.isSold
+                                  ? ElevatedButton(
+                                      onPressed: null, // Disable button
+                                      child: Text('Sold'),
+                                      style: ElevatedButton.styleFrom(
+                                        minimumSize: Size(double.infinity, 36),
+                                        backgroundColor: Colors.redAccent, // Updated from 'primary'
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(8),
+                                        ),
+                                      ),
+                                    )
+                                  : ElevatedButton(
+                                      onPressed: () => _buyNow(context, product),
+                                      child: Text('Buy Now'),
+                                      style: ElevatedButton.styleFrom(
+                                        minimumSize: Size(double.infinity, 36),
+                                        backgroundColor: Colors.blueAccent, // Updated color for better contrast
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(8),
+                                        ),
+                                      ),
                                     ),
-                                  ),
-                                ),
-                    ],
+                        ),
+                        SizedBox(height: 8),
+                      ],
+                    ),
                   ),
-                ),
-                if (product.isSold)
-                  Positioned.fill(
-                    child: Container(
-                      color: Colors.black54,
-                      child: Center(
-                        child: Text(
-                          'SOLD',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 32,
-                            fontWeight: FontWeight.bold,
+                  if (product.isSold)
+                    Positioned.fill(
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Colors.black45,
+                          borderRadius: BorderRadius.circular(15),
+                        ),
+                        child: Center(
+                          child: Text(
+                            'SOLD',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 28,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ),
                       ),
                     ),
-                  ),
-              ],
-            ),
-          );
-        },
+                ],
+              ),
+            );
+          },
+        ),
       ),
     );
   }
@@ -248,8 +265,12 @@ class _MenuScreenState extends State<MenuScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      // Apply a transparent AppBar to blend with the gradient background
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
         title: Text('College Buy & Sell'),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
         actions: [
           Padding(
             padding: EdgeInsets.all(8.0),
@@ -266,6 +287,7 @@ class _MenuScreenState extends State<MenuScreen> {
       ),
       body: _buildProductGrid(),
       floatingActionButton: FloatingActionButton(
+        backgroundColor: Colors.blueAccent, // Updated color for consistency
         child: Icon(Icons.add),
         onPressed: () {
           // Navigate to AddProductScreen
