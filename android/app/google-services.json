@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "1065381426000",
+    "project_id": "tardefinal-69fa5",
+    "storage_bucket": "tardefinal-69fa5.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1065381426000:android:8244436676b0bbc382b255",
+        "android_client_info": {
+          "package_name": "com.example.tarde_final"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1065381426000-96l127rursin0m85gqt0o0br4c4hncfk.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.tarde_final",
+            "certificate_hash": "a91d2e1a7aeeb0dcdf9bb9dcc5b83378ec8ce74e"
+          }
+        },
+        {
+          "client_id": "1065381426000-afk8r494hflh89llm5o1jlmj3iupgs2v.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBmMZjOd0DLHIupDplpY8TCE346h-0H6Gk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1065381426000-afk8r494hflh89llm5o1jlmj3iupgs2v.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
