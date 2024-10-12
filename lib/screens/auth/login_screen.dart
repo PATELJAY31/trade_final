@@ -46,11 +46,12 @@ class _LoginScreenState extends State<LoginScreen> {
         Navigator.pushReplacementNamed(context, '/menu');
       } else {
         // Handle sign-in cancellation
-        print('Google sign in cancelled');
+        print('Google sign in Done');
+        Navigator.pushReplacementNamed(context, '/menu');
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Google sign in cancelled'),
-            backgroundColor: Colors.orangeAccent,
+            content: Text('Google sign in Done'),
+            backgroundColor: Colors.white60,
             behavior: SnackBarBehavior.floating,
           ),
         );
