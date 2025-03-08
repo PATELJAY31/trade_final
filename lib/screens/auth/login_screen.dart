@@ -3,221 +3,300 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../services/auth_service.dart';
+import '../../widgets/custom_button.dart';
+import '../../theme/app_theme.dart';
+import '../menu/menu_screen.dart';
+import 'signup_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  _LoginScreenState createState() => _LoginScreenState();
 }
 
 class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
-  String email = '';
-  String password = '';
-  bool isLoading = false;
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  bool _isLoading = false;
+  String? _errorMessage;
+  bool _obscurePassword = true;
 
-  // Temporarily bypass the login process
-  void _login() async {
-    setState(() {
-      isLoading = true;
-    });
-
-    // Simulate a short delay
-    await Future.delayed(Duration(seconds: 1));
-
-    setState(() {
-      isLoading = false;
-    });
-
-    // Navigate directly to the Menu Screen
-    Navigator.pushReplacementNamed(context, '/menu');
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
   }
 
-  void _loginWithGoogle() async {
+  Future<void> _signInWithEmailAndPassword() async {
+    if (!_formKey.currentState!.validate()) return;
+
     setState(() {
-      isLoading = true;
+      _isLoading = true;
+      _errorMessage = null;
     });
 
     try {
-      print('Attempting to sign in with Google');
-      bool success = await Provider.of<AuthService>(context, listen: false)
-          .signInWithGoogle();
-      if (success) {
-        print('Google sign in successful, navigating to Menu Screen');
-        Navigator.pushReplacementNamed(context, '/menu');
-      } else {
-        // Handle sign-in cancellation
-        print('Google sign in Done');
-        Navigator.pushReplacementNamed(context, '/menu');
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Google sign in Done'),
-            backgroundColor: Colors.white60,
-            behavior: SnackBarBehavior.floating,
-          ),
+      final authService = Provider.of<AuthService>(context, listen: false);
+      final result = await authService.signInWithEmailAndPassword(
+        _emailController.text.trim(),
+        _passwordController.text,
+      );
+      
+      if (!mounted) return;
+
+      // Check if the user is properly authenticated
+      if (result.user != null) {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (_) => MenuScreen()),
         );
+      } else {
+        setState(() {
+          _errorMessage = 'Failed to sign in. Please try again.';
+        });
       }
     } catch (e) {
-      print('Failed to sign in with Google: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Failed to sign in with Google: $e'),
-          backgroundColor: Colors.redAccent,
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-    } finally {
       setState(() {
-        isLoading = false;
+        // Clean up the error message for better user experience
+        _errorMessage = e.toString()
+            .replaceAll('Exception: ', '')
+            .replaceAll('FirebaseException: ', '');
       });
+      print('Login Error: $e');
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
-  Widget _buildEmailField() {
-    return TextFormField(
-      decoration: InputDecoration(
-        prefixIcon: Icon(Icons.email),
-        labelText: 'Email',
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: BorderSide(color: Colors.blueAccent),
-        ),
-      ),
-      keyboardType: TextInputType.emailAddress,
-      validator: (value) =>
-          value != null && value.contains('@') ? null : 'Enter a valid email',
-      onChanged: (value) => email = value,
-    );
-  }
+  Future<void> _signInWithGoogle() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
 
-  Widget _buildPasswordField() {
-    return TextFormField(
-      decoration: InputDecoration(
-        prefixIcon: Icon(Icons.lock),
-        labelText: 'Password',
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: BorderSide(color: Colors.blueAccent),
-        ),
-      ),
-      obscureText: true,
-      validator: (value) =>
-          value != null && value.length >= 6 ? null : 'Minimum 6 characters',
-      onChanged: (value) => password = value,
-    );
-  }
+    try {
+      final authService = Provider.of<AuthService>(context, listen: false);
+      
+      // First attempt Google Sign In
+      final userCredential = await authService.signInWithGoogle();
+      
+      if (!mounted) return;
 
-  Widget _buildLoginButton() {
-    return ElevatedButton(
-      onPressed: isLoading ? null : _login, // Bypassed login
-      style: ElevatedButton.styleFrom(
-        backgroundColor: Colors.blueAccent, // Primary button color
-        minimumSize: Size(double.infinity, 50),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        elevation: 5, // Adds a shadow
-      ),
-      child: isLoading
-          ? CircularProgressIndicator(
-              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-            )
-          : Text(
-              'Login',
-              style: TextStyle(fontSize: 18),
-            ),
-    );
-  }
+      // Wait a moment for auth state to update
+      await Future.delayed(Duration(milliseconds: 500));
 
-  Widget _buildGoogleLoginButton() {
-    return ElevatedButton.icon(
-      onPressed: isLoading ? null : _loginWithGoogle, // Properly linked to _loginWithGoogle
-      icon: Icon(Icons.login, color: Colors.white),
-      label: Text(
-        'Login with Google',
-        style: TextStyle(color: Colors.white, fontSize: 18),
-      ),
-      style: ElevatedButton.styleFrom(
-        backgroundColor: Colors.redAccent, // Google button color
-        minimumSize: Size(double.infinity, 50),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        elevation: 5, // Adds a shadow
-      ),
-    );
-  }
+      // Check if we're authenticated, either through UserCredential or currentUser
+      final bool isAuthenticated = userCredential?.user != null || authService.currentUser != null;
 
-  Widget _buildRegisterText() {
-    return TextButton(
-      onPressed: () {
-        Navigator.pushNamed(context, '/signup');
-      },
-      child: Text(
-        'Don\'t have an account? Register here.',
-        style: TextStyle(color: Colors.blueAccent),
-      ),
-    );
+      if (isAuthenticated) {
+        print('Successfully authenticated with Google: ${authService.currentUser?.email}');
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (_) => MenuScreen()),
+        );
+      } else {
+        setState(() {
+          _errorMessage = 'Google sign in was cancelled or failed. Please try again.';
+        });
+      }
+    } catch (e) {
+      print('Google Sign In Error: $e');
+      setState(() {
+        if (e.toString().contains('network')) {
+          _errorMessage = 'Network error. Please check your internet connection.';
+        } else if (e.toString().contains('cancelled')) {
+          _errorMessage = 'Sign in was cancelled.';
+        } else if (e.toString().contains('PigeonUserDetails')) {
+          // Check if we're actually authenticated despite the error
+          final authService = Provider.of<AuthService>(context, listen: false);
+          if (authService.currentUser != null) {
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(builder: (_) => MenuScreen()),
+            );
+            return;
+          }
+          _errorMessage = 'Failed to complete sign in. Please try again.';
+        } else {
+          _errorMessage = 'Failed to sign in with Google. Please try again.';
+        }
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // Make the AppBar transparent to blend with the gradient
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        title: Text('Login'),
-      ),
-      extendBodyBehindAppBar: true,
-      body: Container(
-        decoration: BoxDecoration(
-          // Background gradient
-          gradient: LinearGradient(
-            colors: [
-              Color(0xFF8E2DE2), // Purple
-              Color(0xFF4A00E0), // Dark Purple
-            ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-        ),
-        child: Center(
-          child: SingleChildScrollView(
-            padding: EdgeInsets.symmetric(horizontal: 24.0),
-            child: Card(
-              color: Colors.white.withOpacity(0.8),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16.0),
-              ),
-              elevation: 8,
-              child: Padding(
-                padding: EdgeInsets.all(16.0),
-                child: Form(
-                  key: _formKey,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
+      backgroundColor: AppTheme.backgroundColor,
+      body: SafeArea(
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const SizedBox(height: 40),
+                  // Logo and Welcome Text
+                  Column(
                     children: [
-                      // App Logo
-                      Image.asset(
-                        'assets/images/logo.png',
-                        height: 100,
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: AppTheme.primaryColor.withOpacity(0.1),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          Icons.shopping_cart,
+                          size: 64,
+                          color: AppTheme.primaryColor,
+                        ),
                       ),
-                      SizedBox(height: 20),
-                      // Email Field
-                      _buildEmailField(),
-                      SizedBox(height: 20),
-                      // Password Field
-                      _buildPasswordField(),
-                      SizedBox(height: 30),
-                      // Login Button
-                      _buildLoginButton(),
-                      SizedBox(height: 20),
-                      // Google Login Button
-                      _buildGoogleLoginButton(),
-                      SizedBox(height: 20),
-                      // Register Text
-                      _buildRegisterText(),
+                      const SizedBox(height: 24),
+                      Text(
+                        'Welcome Back!',
+                        style: Theme.of(context).textTheme.displayMedium,
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Sign in to continue shopping',
+                        style: Theme.of(context).textTheme.bodyMedium,
+                        textAlign: TextAlign.center,
+                      ),
                     ],
                   ),
-                ),
+                  const SizedBox(height: 40),
+
+                  // Error Message
+                  if (_errorMessage != null)
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: AppTheme.errorColor.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.error_outline, color: AppTheme.errorColor),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              _errorMessage!,
+                              style: TextStyle(
+                                color: AppTheme.errorColor,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  if (_errorMessage != null) const SizedBox(height: 24),
+
+                  // Email Field
+                  TextFormField(
+                    controller: _emailController,
+                    keyboardType: TextInputType.emailAddress,
+                    decoration: InputDecoration(
+                      labelText: 'Email',
+                      prefixIcon: Icon(Icons.email_outlined, color: AppTheme.secondaryColor),
+                    ),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Please enter your email';
+                      }
+                      if (!value.contains('@')) {
+                        return 'Please enter a valid email';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Password Field
+                  TextFormField(
+                    controller: _passwordController,
+                    obscureText: _obscurePassword,
+                    decoration: InputDecoration(
+                      labelText: 'Password',
+                      prefixIcon: Icon(Icons.lock_outline, color: AppTheme.secondaryColor),
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          _obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                          color: AppTheme.secondaryColor,
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            _obscurePassword = !_obscurePassword;
+                          });
+                        },
+                      ),
+                    ),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Please enter your password';
+                      }
+                      if (value.length < 6) {
+                        return 'Password must be at least 6 characters';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 24),
+
+                  // Login Button
+                  CustomButton(
+                    text: 'Login',
+                    onPressed: _signInWithEmailAndPassword,
+                    isLoading: _isLoading,
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Google Sign In Button
+                  CustomButton(
+                    text: 'Sign in with Google',
+                    onPressed: _signInWithGoogle,
+                    isOutlined: true,
+                    icon: Icons.g_mobiledata,
+                    color: Colors.red,
+                  ),
+                  const SizedBox(height: 24),
+
+                  // Sign Up Link
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        "Don't have an account? ",
+                        style: Theme.of(context).textTheme.bodyMedium,
+                      ),
+                      TextButton(
+                        onPressed: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(builder: (_) => SignupScreen()),
+                          );
+                        },
+                        child: Text(
+                          'Sign Up',
+                          style: TextStyle(
+                            color: AppTheme.primaryColor,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ),
           ),

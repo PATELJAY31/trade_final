@@ -10,6 +10,7 @@ import '../search/search_screen.dart';
 import '../profile/profile_screen.dart';
 import '../product/add_product_screen.dart';
 import '../../utils/gradients.dart'; // Import the gradients utility
+import '../auth/login_screen.dart';
 
 class MenuScreen extends StatefulWidget {
   @override
@@ -268,20 +269,18 @@ class _MenuScreenState extends State<MenuScreen> {
       // Apply a transparent AppBar to blend with the gradient background
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: Text('College Buy & Sell'),
+        title: Text('Menu'),
         backgroundColor: Colors.transparent,
         elevation: 0,
         actions: [
-          Padding(
-            padding: EdgeInsets.all(8.0),
-            child: IconButton(
-              icon: Icon(Icons.logout),
-              onPressed: () async {
-                await Provider.of<AuthService>(context, listen: false).signOut();
-                Navigator.of(context)
-                    .pushNamedAndRemoveUntil('/login', (route) => false);
-              },
-            ),
+          IconButton(
+            icon: Icon(Icons.logout),
+            onPressed: () async {
+              await Provider.of<AuthService>(context, listen: false).signOut();
+              Navigator.of(context).pushReplacement(
+                MaterialPageRoute(builder: (_) => LoginScreen()),
+              );
+            },
           ),
         ],
       ),

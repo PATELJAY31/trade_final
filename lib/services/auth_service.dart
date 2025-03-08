@@ -7,154 +7,188 @@ import '../firebase_options.dart'; // Ensure correct path
 import 'database_service.dart';
 import '../models/user.dart'; // Ensure correct path
 
-class AuthService with ChangeNotifier {
+class AuthService extends ChangeNotifier {
   final FirebaseAuth _auth = FirebaseAuth.instance;
-  final GoogleSignIn _googleSignIn = GoogleSignIn(); // Initialize GoogleSignIn
-  User? _user;
+  final GoogleSignIn _googleSignIn = GoogleSignIn();
+  User? get currentUser => _auth.currentUser;
+  Stream<User?> get authStateChanges => _auth.authStateChanges();
 
   AuthService() {
     // Listen to authentication state changes
     _auth.authStateChanges().listen(_onAuthStateChanged);
   }
 
-  User? get currentUser => _user;
-
-  // Handle authentication state changes
-  void _onAuthStateChanged(User? user) {
-    _user = user;
-    notifyListeners();
-  }
-
   final DatabaseService _databaseService = DatabaseService();
 
   static Future<void> initializeFirebase() async {
-    await Firebase.initializeApp(
-      options: DefaultFirebaseOptions.currentPlatform,
-    );
-    print('Firebase initialized');
+    try {
+      await Firebase.initializeApp(
+        options: DefaultFirebaseOptions.currentPlatform,
+      );
+      print('Firebase initialized successfully');
+    } catch (e) {
+      print('Error initializing Firebase: $e');
+      throw Exception('Failed to initialize Firebase: $e');
+    }
   }
 
   bool get isLoggedIn => currentUser != null;
 
-  // Expose the authStateChanges stream
-  Stream<User?> get authStateChanges => _auth.authStateChanges();
-
-  // Sign in with Email and Password
-  Future<void> signInWithEmail(String email, String password) async {
-    try {
-      print('Signing in with email: $email');
-      UserCredential cred = await _auth.signInWithEmailAndPassword(
-          email: email, password: password);
-      notifyListeners();
-      print('Signed in user: ${currentUser?.email}');
-    } on FirebaseAuthException catch (e) {
-      print('FirebaseAuthException: ${e.code}');
-      throw _handleFirebaseAuthException(e);
-    } catch (e) {
-      print('General Exception: $e');
-      throw Exception('An unexpected error occurred. Please try again.');
-    }
-  }
-
-  // Sign up with Email and Password
-  Future<void> signUpWithEmail(String email, String password) async {
-    try {
-      print('Signing up with email: $email');
-      UserCredential cred = await _auth.createUserWithEmailAndPassword(
-          email: email, password: password);
-
-      // Create a new user document in Firestore
-      await _databaseService.createUser(UserModel(
-        uid: currentUser!.uid,
-        name: '',
-        email: email,
-        phone: '',
-      ));
-      print('User document created for: ${currentUser?.email}');
-
-      notifyListeners();
-      print('Signup successful for: ${currentUser?.email}');
-    } on FirebaseAuthException catch (e) {
-      print('FirebaseAuthException: ${e.code}');
-      throw _handleFirebaseAuthException(e);
-    } catch (e) {
-      print('General Exception: $e');
-      throw Exception('An unexpected error occurred. Please try again.');
-    }
-  }
-
-  // Sign in with Google
-  Future<bool> signInWithGoogle() async {
-    try {
-      print('Initiating Google Sign-In');
-      await _googleSignIn.signOut(); // Sign out existing sessions
-
-      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
-      if (googleUser == null) {
-        print('User cancelled Google Sign-In');
-        return false;
-      }
-
-      final GoogleSignInAuthentication googleAuth =
-          await googleUser.authentication;
-
-      final AuthCredential credential = GoogleAuthProvider.credential(
-          accessToken: googleAuth.accessToken, idToken: googleAuth.idToken);
-
-      UserCredential cred = await _auth.signInWithCredential(credential);
-
-      print('Signed in user with Google: ${currentUser?.email}');
-
-      // Check if user exists in Firestore
-      bool userExists =
-          await _databaseService.checkUserExists(currentUser!.uid);
-      print('User exists in Firestore: $userExists');
-      if (!userExists) {
-        // Create new user document
-        await _databaseService.createUser(UserModel(
-          uid: currentUser!.uid,
-          name: currentUser!.displayName ?? '',
-          email: currentUser!.email ?? '',
-          phone: '',
-        ));
-        print('User document created for Google user: ${currentUser?.email}');
-      }
-
-      notifyListeners();
-      return true;
-    } catch (e) {
-      print('Error in signInWithGoogle: $e');
-      return false;
-    }
-  }
-
-  // Sign out
-  Future<void> signOut() async {
-    await _auth.signOut();
-    await _googleSignIn.signOut(); // Ensure GoogleSignIn is also signed out
+  // Handle authentication state changes
+  void _onAuthStateChanged(User? user) {
+    print('Auth state changed: ${user?.email}');
     notifyListeners();
-    print('User signed out');
   }
 
-  // Handle Firebase Authentication Exceptions
-  String _handleFirebaseAuthException(FirebaseAuthException e) {
+  Future<UserCredential> signInWithEmailAndPassword(String email, String password) async {
+    try {
+      print('Attempting to sign in with email: $email');
+      final UserCredential userCredential = await _auth.signInWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+      
+      // Ensure the user object exists
+      if (userCredential.user == null) {
+        throw Exception('No user data received after sign in');
+      }
+
+      print('Successfully signed in: ${userCredential.user?.email}');
+      notifyListeners();
+      return userCredential;
+    } on FirebaseAuthException catch (e) {
+      print('Firebase Auth Exception: ${e.code}');
+      throw _handleAuthException(e);
+    } catch (e) {
+      print('General Error during sign in: $e');
+      if (e.toString().contains('PigeonUserDetails')) {
+        // Handle the specific type casting error
+        throw Exception('Authentication failed: Unable to process user details');
+      }
+      throw Exception('Failed to sign in: ${e.toString()}');
+    }
+  }
+
+  Future<UserCredential> signUpWithEmailAndPassword(String email, String password, String displayName) async {
+    try {
+      print('Attempting to create account with email: $email');
+      final UserCredential userCredential = await _auth.createUserWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+
+      // Update display name
+      await userCredential.user?.updateDisplayName(displayName);
+      await userCredential.user?.reload();
+      
+      print('Successfully created account: ${userCredential.user?.email}');
+      notifyListeners();
+      return userCredential;
+    } on FirebaseAuthException catch (e) {
+      print('Firebase Auth Exception: ${e.code}');
+      throw _handleAuthException(e);
+    } catch (e) {
+      print('General Error during sign up: $e');
+      throw Exception('Failed to create account: $e');
+    }
+  }
+
+  Future<UserCredential?> signInWithGoogle() async {
+    try {
+      print('Starting Google Sign In process');
+      
+      // Force sign out first to clear any existing sessions
+      await _googleSignIn.signOut();
+      
+      // Begin sign in process
+      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+      
+      if (googleUser == null) {
+        print('Google Sign In cancelled by user');
+        return null;
+      }
+
+      print('Getting Google auth details');
+      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+
+      // Create a new credential
+      final credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+
+      try {
+        print('Signing in to Firebase with Google credential');
+        // Sign in to Firebase
+        final UserCredential userCredential = await _auth.signInWithCredential(credential);
+        
+        if (userCredential.user == null) {
+          throw Exception('No user data received from Google sign in');
+        }
+
+        // Wait for a short duration to ensure Firebase auth state is updated
+        await Future.delayed(Duration(milliseconds: 500));
+
+        print('Successfully signed in with Google: ${userCredential.user?.email}');
+        notifyListeners();
+        return userCredential;
+      } on FirebaseAuthException catch (e) {
+        print('Firebase Auth Exception during Google sign in: ${e.code}');
+        throw _handleAuthException(e);
+      }
+    } catch (e) {
+      print('Error during Google sign in: $e');
+      if (e.toString().contains('PigeonUserDetails')) {
+        // Check if the user is actually signed in despite the error
+        if (_auth.currentUser != null) {
+          print('User is signed in despite PigeonUserDetails error');
+          // Instead of creating a UserCredential, we'll return null and let the UI check currentUser
+          notifyListeners();
+          return null;
+        }
+      }
+      throw Exception('Failed to sign in with Google. Please try again.');
+    }
+  }
+
+  Future<void> signOut() async {
+    try {
+      print('Signing out');
+      await Future.wait([
+        _auth.signOut(),
+        _googleSignIn.signOut(),
+      ]);
+      print('Successfully signed out');
+      notifyListeners();
+    } catch (e) {
+      print('Error during sign out: $e');
+      throw Exception('Failed to sign out: ${e.toString()}');
+    }
+  }
+
+  String _handleAuthException(FirebaseAuthException e) {
+    print('Handling auth exception: ${e.code}');
     switch (e.code) {
-      case 'invalid-email':
-        return 'The email address is not valid.';
-      case 'user-disabled':
-        return 'This user has been disabled.';
       case 'user-not-found':
         return 'No user found with this email.';
       case 'wrong-password':
-        return 'Incorrect password.';
+        return 'Wrong password provided.';
       case 'email-already-in-use':
-        return 'The email is already in use by another account.';
-      case 'operation-not-allowed':
-        return 'Operation not allowed. Please contact support.';
+        return 'Email is already in use.';
+      case 'invalid-email':
+        return 'Invalid email address.';
       case 'weak-password':
-        return 'The password is too weak.';
+        return 'Password must be at least 6 characters.';
+      case 'operation-not-allowed':
+        return 'This sign-in method is not enabled.';
+      case 'user-disabled':
+        return 'This account has been disabled.';
+      case 'too-many-requests':
+        return 'Too many attempts. Please try again later.';
+      case 'network-request-failed':
+        return 'Network error. Please check your connection.';
       default:
-        return 'An undefined Error happened.';
+        return 'Authentication failed: ${e.message}';
     }
   }
 
@@ -171,7 +205,7 @@ class AuthService with ChangeNotifier {
       print('Successfully linked email and password to Google account.');
     } on FirebaseAuthException catch (e) {
       print('FirebaseAuthException during linking: ${e.code}');
-      throw _handleFirebaseAuthException(e);
+      throw _handleAuthException(e);
     } catch (e) {
       print('General Exception during linking: $e');
       throw Exception('An unexpected error occurred. Please try again.');
@@ -180,32 +214,40 @@ class AuthService with ChangeNotifier {
 
   Future<void> signIn(String email, String password) async {
     try {
-      UserCredential userCredential = await _auth.signInWithEmailAndPassword(
-          email: email, password: password);
+      final userCredential = await _auth.signInWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+      
+      // Verify user data
+      if (userCredential.user == null) {
+        throw Exception('No user data received');
+      }
+      
       notifyListeners();
+    } on FirebaseAuthException catch (e) {
+      throw _handleAuthException(e);
     } catch (e) {
-      print('AuthService: SignIn Error: $e');
-      throw e;
+      if (e.toString().contains('PigeonUserDetails')) {
+        throw Exception('Unable to process user details. Please try again.');
+      }
+      throw Exception('An unexpected error occurred: ${e.toString()}');
     }
   }
 
-  Future<void> signUp(
-      String email, String password, String displayName) async {
+  Future<void> signUp(String email, String password, String displayName) async {
     try {
-      UserCredential userCredential = await _auth
-          .createUserWithEmailAndPassword(email: email, password: password);
+      final userCredential = await _auth.createUserWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
 
       // Update display name
-      await userCredential.user!.updateDisplayName(displayName);
-      await userCredential.user!.reload();
-
-      // Optionally, add user to your database
-      // await _databaseService.addUser(currentUser!);
-
+      await userCredential.user?.updateDisplayName(displayName);
+      await userCredential.user?.reload();
       notifyListeners();
-    } catch (e) {
-      print('AuthService: SignUp Error: $e');
-      throw e;
+    } on FirebaseAuthException catch (e) {
+      throw _handleAuthException(e);
     }
   }
 }
