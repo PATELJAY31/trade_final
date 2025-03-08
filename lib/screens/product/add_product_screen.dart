@@ -4,6 +4,7 @@
    import '../../services/database_service.dart';
    import 'package:provider/provider.dart';
    import '../../services/auth_service.dart';
+   import '../../widgets/custom_button.dart';
 
    class AddProductScreen extends StatefulWidget {
      @override
@@ -12,50 +13,63 @@
 
    class _AddProductScreenState extends State<AddProductScreen> {
      final _formKey = GlobalKey<FormState>();
-     String title = '';
-     String description = '';
-     double price = 0.0;
-     String imageUrl = '';
-     bool isLoading = false;
+     final _titleController = TextEditingController();
+     final _descriptionController = TextEditingController();
+     final _priceController = TextEditingController();
+     final _imageUrlController = TextEditingController();
+     bool _isLoading = false;
+     String? _errorMessage;
 
-     void _addProduct() async {
-       if (_formKey.currentState!.validate()) {
+     @override
+     void dispose() {
+       _titleController.dispose();
+       _descriptionController.dispose();
+       _priceController.dispose();
+       _imageUrlController.dispose();
+       super.dispose();
+     }
+
+     Future<void> _submitProduct() async {
+       if (!_formKey.currentState!.validate()) return;
+
+       setState(() {
+         _isLoading = true;
+         _errorMessage = null;
+       });
+
+       try {
+         final authService = Provider.of<AuthService>(context, listen: false);
+         final currentUser = authService.currentUser;
+         
+         if (currentUser == null) {
+           throw Exception('You must be logged in to add a product');
+         }
+
+         final product = Product(
+           id: '', // This will be set by Firestore
+           title: _titleController.text.trim(),
+           description: _descriptionController.text.trim(),
+           price: double.parse(_priceController.text),
+           imageUrl: _imageUrlController.text.trim(),
+           sellerId: currentUser.uid,
+           sellerName: currentUser.displayName ?? 'Unknown Seller',
+           createdAt: DateTime.now(),
+         );
+
+         final databaseService = DatabaseService();
+         await databaseService.addProduct(product);
+
+         if (mounted) {
+           Navigator.pop(context);
+         }
+       } catch (e) {
          setState(() {
-           isLoading = true;
+           _errorMessage = e.toString();
          });
-         try {
-           final authService = Provider.of<AuthService>(context, listen: false);
-           final currentUser = authService.currentUser;
-           if (currentUser == null) {
-             ScaffoldMessenger.of(context).showSnackBar(
-               SnackBar(content: Text('You must be logged in to add a product.')),
-             );
-             return;
-           }
-
-           Product newProduct = Product(
-             id: '', // Firestore will generate ID
-             title: title,
-             description: description,
-             price: price,
-             imageUrl: imageUrl,
-             sellerId: currentUser.uid,
-             isSold: false,
-             buyerId: '',
-           );
-
-           await DatabaseService().addOrUpdateProduct(newProduct);
-           ScaffoldMessenger.of(context).showSnackBar(
-             SnackBar(content: Text('Product Added')),
-           );
-           Navigator.of(context).pop();
-         } catch (e) {
-           ScaffoldMessenger.of(context).showSnackBar(
-             SnackBar(content: Text('Failed to add product: $e')),
-           );
-         } finally {
+       } finally {
+         if (mounted) {
            setState(() {
-             isLoading = false;
+             _isLoading = false;
            });
          }
        }
@@ -67,60 +81,92 @@
          appBar: AppBar(
            title: Text('Add Product'),
          ),
-         body: Padding(
+         body: SingleChildScrollView(
            padding: EdgeInsets.all(16.0),
            child: Form(
              key: _formKey,
-             child: SingleChildScrollView(
-               child: Column(
-                 children: [
-                   // Title Field
-                   TextFormField(
-                     decoration: InputDecoration(labelText: 'Title'),
-                     validator: (value) => value == null || value.isEmpty ? 'Enter a title' : null,
-                     onChanged: (value) => setState(() { title = value; }),
-                   ),
-                   SizedBox(height: 16),
-                   // Description Field
-                   TextFormField(
-                     decoration: InputDecoration(labelText: 'Description'),
-                     validator: (value) => value == null || value.isEmpty ? 'Enter a description' : null,
-                     onChanged: (value) => setState(() { description = value; }),
-                     maxLines: 3,
-                   ),
-                   SizedBox(height: 16),
-                   // Price Field
-                   TextFormField(
-                     decoration: InputDecoration(labelText: 'Price'),
-                     validator: (value) {
-                       if (value == null || value.isEmpty) return 'Enter a price';
-                       if (double.tryParse(value) == null) return 'Enter a valid number';
-                       return null;
-                     },
-                     onChanged: (value) => setState(() { price = double.parse(value); }),
-                     keyboardType: TextInputType.number,
-                   ),
-                   SizedBox(height: 16),
-                   // Image URL Field
-                   TextFormField(
-                     decoration: InputDecoration(labelText: 'Image URL'),
-                     onChanged: (value) => setState(() { imageUrl = value; }),
-                   ),
-                   SizedBox(height: 32),
-                   // Submit Button
-                   ElevatedButton(
-                     onPressed: isLoading ? null : _addProduct,
-                     child: isLoading
-                         ? CircularProgressIndicator(
-                             valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                           )
-                         : Text('Add Product'),
-                     style: ElevatedButton.styleFrom(
-                       minimumSize: Size(double.infinity, 50),
+             child: Column(
+               crossAxisAlignment: CrossAxisAlignment.stretch,
+               children: [
+                 if (_errorMessage != null)
+                   Padding(
+                     padding: EdgeInsets.only(bottom: 16.0),
+                     child: Text(
+                       _errorMessage!,
+                       style: TextStyle(color: Colors.red),
                      ),
                    ),
-                 ],
-               ),
+                 TextFormField(
+                   controller: _titleController,
+                   decoration: InputDecoration(
+                     labelText: 'Title',
+                     border: OutlineInputBorder(),
+                   ),
+                   validator: (value) {
+                     if (value == null || value.isEmpty) {
+                       return 'Please enter a title';
+                     }
+                     return null;
+                   },
+                 ),
+                 SizedBox(height: 16.0),
+                 TextFormField(
+                   controller: _descriptionController,
+                   decoration: InputDecoration(
+                     labelText: 'Description',
+                     border: OutlineInputBorder(),
+                   ),
+                   maxLines: 3,
+                   validator: (value) {
+                     if (value == null || value.isEmpty) {
+                       return 'Please enter a description';
+                     }
+                     return null;
+                   },
+                 ),
+                 SizedBox(height: 16.0),
+                 TextFormField(
+                   controller: _priceController,
+                   decoration: InputDecoration(
+                     labelText: 'Price',
+                     border: OutlineInputBorder(),
+                     prefixText: '\$',
+                   ),
+                   keyboardType: TextInputType.numberWithOptions(decimal: true),
+                   validator: (value) {
+                     if (value == null || value.isEmpty) {
+                       return 'Please enter a price';
+                     }
+                     if (double.tryParse(value) == null) {
+                       return 'Please enter a valid number';
+                     }
+                     return null;
+                   },
+                 ),
+                 SizedBox(height: 16.0),
+                 TextFormField(
+                   controller: _imageUrlController,
+                   decoration: InputDecoration(
+                     labelText: 'Image URL',
+                     border: OutlineInputBorder(),
+                   ),
+                   validator: (value) {
+                     if (value == null || value.isEmpty) {
+                       return 'Please enter an image URL';
+                     }
+                     final uri = Uri.tryParse(value);
+                     if (uri == null || !uri.isAbsolute) {
+                       return 'Please enter a valid URL';
+                     }
+                     return null;
+                   },
+                 ),
+                 SizedBox(height: 24.0),
+                 CustomButton(
+                   text: _isLoading ? 'Adding Product...' : 'Add Product',
+                   onPressed: _isLoading ? null : _submitProduct,
+                 ),
+               ],
              ),
            ),
          ),
