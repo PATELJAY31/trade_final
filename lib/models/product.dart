@@ -7,8 +7,9 @@ class Product {
   final double price;
   final String imageUrl;
   final String sellerId;
+  final String sellerName;
   final bool isSold;
-  final String? buyerId;
+  final DateTime createdAt;
 
   Product({
     required this.id,
@@ -17,13 +18,14 @@ class Product {
     required this.price,
     required this.imageUrl,
     required this.sellerId,
+    required this.sellerName,
     this.isSold = false,
-    this.buyerId,
+    required this.createdAt,
   });
 
-  factory Product.fromDocument(DocumentSnapshot doc) {
+  // Convert Firestore document to Product object
+  factory Product.fromFirestore(DocumentSnapshot doc) {
     Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
-
     return Product(
       id: doc.id,
       title: data['title'] ?? '',
@@ -31,21 +33,23 @@ class Product {
       price: (data['price'] ?? 0).toDouble(),
       imageUrl: data['imageUrl'] ?? '',
       sellerId: data['sellerId'] ?? '',
+      sellerName: data['sellerName'] ?? '',
       isSold: data['isSold'] ?? false,
-      buyerId: data['buyerId'],
+      createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
     );
   }
 
-  Map<String, dynamic> toMap() {
+  // Convert Product object to Map for Firestore
+  Map<String, dynamic> toFirestore() {
     return {
       'title': title,
       'description': description,
       'price': price,
       'imageUrl': imageUrl,
       'sellerId': sellerId,
+      'sellerName': sellerName,
       'isSold': isSold,
-      'buyerId': buyerId,
-      'lastUpdated': FieldValue.serverTimestamp(),
+      'createdAt': Timestamp.fromDate(createdAt),
     };
   }
 
@@ -57,8 +61,9 @@ class Product {
     double? price,
     String? imageUrl,
     String? sellerId,
+    String? sellerName,
     bool? isSold,
-    String? buyerId,
+    DateTime? createdAt,
   }) {
     return Product(
       id: id ?? this.id,
@@ -67,8 +72,9 @@ class Product {
       price: price ?? this.price,
       imageUrl: imageUrl ?? this.imageUrl,
       sellerId: sellerId ?? this.sellerId,
+      sellerName: sellerName ?? this.sellerName,
       isSold: isSold ?? this.isSold,
-      buyerId: buyerId ?? this.buyerId,
+      createdAt: createdAt ?? this.createdAt,
     );
   }
 }

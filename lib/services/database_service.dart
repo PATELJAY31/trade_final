@@ -189,4 +189,81 @@ class DatabaseService {
       throw e;
     }
   }
+
+  // Get all products
+  Stream<List<Product>> get productsStream {
+    return _db
+        .collection('products')
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map((snapshot) {
+          return snapshot.docs.map((doc) => Product.fromFirestore(doc)).toList();
+        });
+  }
+
+  // Get products by seller ID
+  Stream<List<Product>> getSellerProducts(String sellerId) {
+    return _db
+        .collection('products')
+        .where('sellerId', isEqualTo: sellerId)
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map((snapshot) {
+          return snapshot.docs.map((doc) => Product.fromFirestore(doc)).toList();
+        });
+  }
+
+  // Add a new product
+  Future<String> addProduct(Product product) async {
+    try {
+      DocumentReference docRef = await _db.collection('products').add(
+        product.toFirestore(),
+      );
+      return docRef.id;
+    } catch (e) {
+      print('Error adding product: $e');
+      throw Exception('Failed to add product');
+    }
+  }
+
+  // Update a product
+  Future<void> updateProduct(String productId, Map<String, dynamic> data) async {
+    try {
+      await _db.collection('products').doc(productId).update(data);
+    } catch (e) {
+      print('Error updating product: $e');
+      throw Exception('Failed to update product');
+    }
+  }
+
+  // Mark product as sold
+  Future<void> markProductAsSold(String productId, String buyerId) async {
+    try {
+      await _db.collection('products').doc(productId).update({
+        'isSold': true,
+        'buyerId': buyerId,
+        'soldAt': FieldValue.serverTimestamp(),
+      });
+    } catch (e) {
+      print('Error marking product as sold: $e');
+      throw Exception('Failed to mark product as sold');
+    }
+  }
+
+  // Search products
+  Stream<List<Product>> searchProducts(String query) {
+    // Convert query to lowercase for case-insensitive search
+    query = query.toLowerCase();
+    
+    return _db
+        .collection('products')
+        .where('isSold', isEqualTo: false)
+        .orderBy('title')
+        .startAt([query])
+        .endAt([query + '\uf8ff'])
+        .snapshots()
+        .map((snapshot) {
+          return snapshot.docs.map((doc) => Product.fromFirestore(doc)).toList();
+        });
+  }
 }
