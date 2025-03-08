@@ -1,7 +1,11 @@
    // lib/screens/product/add_product_screen.dart
+   import 'dart:io';
    import 'package:flutter/material.dart';
+   import 'package:flutter/services.dart';
+   import 'package:image_picker/image_picker.dart';
    import '../../models/product.dart';
    import '../../services/database_service.dart';
+   import '../../services/storage_service.dart';
    import 'package:provider/provider.dart';
    import '../../services/auth_service.dart';
    import '../../widgets/custom_button.dart';
@@ -16,21 +20,139 @@
      final _titleController = TextEditingController();
      final _descriptionController = TextEditingController();
      final _priceController = TextEditingController();
-     final _imageUrlController = TextEditingController();
      bool _isLoading = false;
      String? _errorMessage;
+     File? _selectedImage;
+     final _imagePicker = ImagePicker();
+     final _storageService = StorageService();
 
      @override
      void dispose() {
        _titleController.dispose();
        _descriptionController.dispose();
        _priceController.dispose();
-       _imageUrlController.dispose();
        super.dispose();
+     }
+
+     Future<void> _pickImage() async {
+       try {
+         // Reset any previous error message
+         setState(() {
+           _errorMessage = null;
+         });
+
+         // Show image source selection dialog
+         final ImageSource? source = await showDialog<ImageSource>(
+           context: context,
+           builder: (BuildContext context) => AlertDialog(
+             title: Text('Select Image Source'),
+             content: Column(
+               mainAxisSize: MainAxisSize.min,
+               children: [
+                 ListTile(
+                   leading: Icon(Icons.photo_library),
+                   title: Text('Gallery'),
+                   onTap: () => Navigator.pop(context, ImageSource.gallery),
+                 ),
+                 ListTile(
+                   leading: Icon(Icons.camera_alt),
+                   title: Text('Camera'),
+                   onTap: () => Navigator.pop(context, ImageSource.camera),
+                 ),
+               ],
+             ),
+           ),
+         );
+
+         if (source == null) return;
+
+         // Request permission and pick image
+         final XFile? pickedFile = await _imagePicker.pickImage(
+           source: source,
+           maxWidth: 1024,
+           maxHeight: 1024,
+           imageQuality: 85,
+           requestFullMetadata: false,
+         ).timeout(
+           Duration(seconds: 30),
+           onTimeout: () {
+             throw Exception('Image picking timed out. Please try again.');
+           },
+         );
+
+         if (pickedFile != null) {
+           setState(() {
+             _selectedImage = File(pickedFile.path);
+           });
+         }
+       } on PlatformException catch (e) {
+         print('Platform Exception during image pick: $e');
+         String errorMessage = 'Failed to pick image';
+         
+         if (e.code == 'photo_access_denied') {
+           errorMessage = 'Please grant photo access permission in your device settings';
+         } else if (e.code == 'camera_access_denied') {
+           errorMessage = 'Please grant camera access permission in your device settings';
+         } else if (e.code == 'channel-error') {
+           // Retry the operation after a short delay
+           await Future.delayed(Duration(milliseconds: 500));
+           try {
+             final XFile? pickedFile = await _imagePicker.pickImage(
+               source: ImageSource.gallery,
+               maxWidth: 1024,
+               maxHeight: 1024,
+               imageQuality: 85,
+               requestFullMetadata: false,
+             );
+             
+             if (pickedFile != null) {
+               setState(() {
+                 _selectedImage = File(pickedFile.path);
+               });
+               return;
+             }
+           } catch (retryError) {
+             print('Retry failed: $retryError');
+             errorMessage = 'Please try again or choose a different image';
+           }
+         }
+
+         if (mounted) {
+           ScaffoldMessenger.of(context).showSnackBar(
+             SnackBar(
+               content: Text(errorMessage),
+               duration: Duration(seconds: 3),
+               action: SnackBarAction(
+                 label: 'Settings',
+                 onPressed: () {
+                   // You can add logic here to open app settings
+                   // This requires another package like 'app_settings'
+                 },
+               ),
+             ),
+           );
+         }
+       } catch (e) {
+         print('Error picking image: $e');
+         if (mounted) {
+           ScaffoldMessenger.of(context).showSnackBar(
+             SnackBar(
+               content: Text('An error occurred while picking the image. Please try again.'),
+               duration: Duration(seconds: 3),
+             ),
+           );
+         }
+       }
      }
 
      Future<void> _submitProduct() async {
        if (!_formKey.currentState!.validate()) return;
+       if (_selectedImage == null) {
+         setState(() {
+           _errorMessage = 'Please select an image';
+         });
+         return;
+       }
 
        setState(() {
          _isLoading = true;
@@ -45,12 +167,15 @@
            throw Exception('You must be logged in to add a product');
          }
 
+         // Upload image first
+         final imageUrl = await _storageService.uploadProductImage(_selectedImage!, currentUser.uid);
+
          final product = Product(
            id: '', // This will be set by Firestore
            title: _titleController.text.trim(),
            description: _descriptionController.text.trim(),
            price: double.parse(_priceController.text),
-           imageUrl: _imageUrlController.text.trim(),
+           imageUrl: imageUrl,
            sellerId: currentUser.uid,
            sellerName: currentUser.displayName ?? 'Unknown Seller',
            createdAt: DateTime.now(),
@@ -96,6 +221,45 @@
                        style: TextStyle(color: Colors.red),
                      ),
                    ),
+                 // Image picker section
+                 GestureDetector(
+                   onTap: _pickImage,
+                   child: Container(
+                     height: 200,
+                     decoration: BoxDecoration(
+                       color: Colors.grey[200],
+                       borderRadius: BorderRadius.circular(12),
+                       border: Border.all(color: Colors.grey[300]!),
+                     ),
+                     child: _selectedImage != null
+                         ? ClipRRect(
+                             borderRadius: BorderRadius.circular(12),
+                             child: Image.file(
+                               _selectedImage!,
+                               fit: BoxFit.cover,
+                               width: double.infinity,
+                             ),
+                           )
+                         : Column(
+                             mainAxisAlignment: MainAxisAlignment.center,
+                             children: [
+                               Icon(
+                                 Icons.add_photo_alternate,
+                                 size: 48,
+                                 color: Colors.grey[400],
+                               ),
+                               SizedBox(height: 8),
+                               Text(
+                                 'Tap to add product image',
+                                 style: TextStyle(
+                                   color: Colors.grey[600],
+                                 ),
+                               ),
+                             ],
+                           ),
+                   ),
+                 ),
+                 SizedBox(height: 16.0),
                  TextFormField(
                    controller: _titleController,
                    decoration: InputDecoration(
@@ -139,24 +303,6 @@
                      }
                      if (double.tryParse(value) == null) {
                        return 'Please enter a valid number';
-                     }
-                     return null;
-                   },
-                 ),
-                 SizedBox(height: 16.0),
-                 TextFormField(
-                   controller: _imageUrlController,
-                   decoration: InputDecoration(
-                     labelText: 'Image URL',
-                     border: OutlineInputBorder(),
-                   ),
-                   validator: (value) {
-                     if (value == null || value.isEmpty) {
-                       return 'Please enter an image URL';
-                     }
-                     final uri = Uri.tryParse(value);
-                     if (uri == null || !uri.isAbsolute) {
-                       return 'Please enter a valid URL';
                      }
                      return null;
                    },

@@ -1,5 +1,6 @@
 // lib/main.dart
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
@@ -18,6 +19,22 @@ import 'theme/app_theme.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
+  // Set preferred orientations
+  await SystemChrome.setPreferredOrientations([
+    DeviceOrientation.portraitUp,
+    DeviceOrientation.portraitDown,
+  ]);
+
+  // Set system UI overlay style
+  SystemChrome.setSystemUIOverlayStyle(
+    SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      statusBarIconBrightness: Brightness.light,
+      systemNavigationBarColor: AppTheme.darkSurface,
+      systemNavigationBarIconBrightness: Brightness.light,
+    ),
+  );
   
   try {
     await Firebase.initializeApp(
@@ -40,9 +57,19 @@ class MyApp extends StatelessWidget {
       ],
       child: MaterialApp(
         title: 'Tarde',
-        theme: AppTheme.lightTheme,
+        theme: AppTheme.darkTheme,
         home: SplashScreen(),
         debugShowCheckedModeBanner: false,
+        // Add routes for better navigation
+        routes: {
+          '/login': (context) => LoginScreen(),
+          '/signup': (context) => SignupScreen(),
+          '/menu': (context) => MenuScreen(),
+          '/profile': (context) => ProfileScreen(),
+          '/search': (context) => SearchScreen(),
+          '/add_product': (context) => AddProductScreen(),
+          '/conversations': (context) => ConversationsScreen(),
+        },
       ),
     );
   }
