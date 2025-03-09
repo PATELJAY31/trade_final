@@ -12,49 +12,58 @@ Connect, Trade, and Thrive in Your Campus Community! 🌟
 
 </div>
 
-## ✨ Features
+## ✨ Implemented Features
 
-### 🔐 Student Authentication
-- 📧 Sign up with university email
-- 🔄 Google Sign-In with edu domain
-- 🛡️ Secure student verification
-- 💾 Persistent login state
-- 🎓 University-specific access
+### 🔐 Authentication
+- 📧 Email/Password Sign Up and Login
+- 🔄 Google Sign-In Integration
+- 💾 Persistent Login State
+- 🔒 Secure Authentication Flow
 
 ### 🏪 Marketplace Features
-- 📚 Buy and sell textbooks
-- 🏠 Find student housing and roommates
-- 📱 Trade electronics and gadgets
-- 🪑 Rent furniture and appliances
-- 🎮 Exchange gaming gear
-- 📝 Post and manage listings
+- 📚 List and Browse Products
+- 💰 Set Custom Prices
+- 📝 Detailed Product Descriptions
+- 🏷️ Category-based Organization
+- 📍 Optional Location Information
+- 💫 Real-time Product Updates
+- 🔍 Product Status Tracking (Active/Sold)
 
-### 🎨 Smart Interface
-- 🌈 Modern, campus-themed design
-- ✨ Smooth animations
-- 📱 Mobile-responsive layout
-- 🌙 Eye-friendly dark mode
-- 🎯 Category-based navigation
-- ⚡ Real-time updates
+### 🎨 User Interface
+- 🌙 Modern Dark Theme
+- 📱 Responsive Design
+- 🎯 Intuitive Navigation
+- ⚡ Real-time Updates
+- 🔄 Smooth State Management
+- 🎨 Clean and Modern UI
 
-### 📸 Media Management
-- 📤 Multiple product photos
-- 🗜️ Smart image compression
-- 🖼️ Preview and gallery view
-- ⚡ Quick upload optimization
+### 👤 User Profiles
+- 👥 User Profiles with Ratings
+- 📊 User Statistics
+- 📈 Active Listings Count
+- 💰 Sales Tracking
+- ⭐ Rating System
 
-### 🔒 Student Safety
-- ✅ Verified student accounts
-- 👥 In-campus meetings
-- 💬 Secure messaging
-- 🚫 Spam prevention
-- ��️ Report system
+### 💼 Product Management
+- ✏️ Create Product Listings
+- 🖼️ Image URL Support
+- 📝 Edit Product Details
+- 🗑️ Delete Products
+- 💰 Price Management
+- 📍 Location Tagging
+
+### 🔍 Search & Filter
+- 🔎 Product Search
+- 🏷️ Category Filtering
+- 💰 Price Range Filtering
+- 📅 Sort by Date
+- 🔄 Real-time Results
 
 ## 📱 App Screenshots
 
 <div align="center">
 
-### 🔐 Authentication & Onboarding
+### 🚀 Onboarding Experience
 
 <table>
   <tr>
@@ -64,65 +73,61 @@ Connect, Trade, and Thrive in Your Campus Community! 🌟
       <em>Splash Screen</em>
     </td>
     <td width="33%">
-      <img src="screenshots/login.png" alt="Login Screen" title="Login Screen"/>
+      <img src="screenshots/intro.png" alt="Intro Screen" title="Intro Screen"/>
       <br />
-      <em>Student Login</em>
+      <em>Introduction Screen</em>
     </td>
     <td width="33%">
-      <img src="screenshots/verification.png" alt="Student Verification" title="Student Verification"/>
+      <img src="screenshots/login.png" alt="Login Screen" title="Login Screen"/>
       <br />
-      <em>Email Verification</em>
+      <em>Login Screen</em>
     </td>
   </tr>
 </table>
 
-### 🏪 Marketplace & Listings
+### 🏪 Core Features
 
 <table>
   <tr>
+    <td width="33%">
+      <img src="screenshots/signup.png" alt="Sign Up Screen" title="Sign Up Screen"/>
+      <br />
+      <em>Sign Up Screen</em>
+    </td>
     <td width="33%">
       <img src="screenshots/home.png" alt="Home Screen" title="Home Screen"/>
       <br />
       <em>Home Feed</em>
     </td>
     <td width="33%">
-      <img src="screenshots/search.png" alt="Search Screen" title="Search Screen"/>
+      <img src="screenshots/sell.png" alt="Sell Screen" title="Sell Screen"/>
       <br />
-      <em>Smart Search</em>
-    </td>
-    <td width="33%">
-      <img src="screenshots/details.png" alt="Product Details" title="Product Details"/>
-      <br />
-      <em>Item Details</em>
-    </td>
-  </tr>
-</table>
-
-### 💬 Messaging & Profile
-
-<table>
-  <tr>
-    <td width="33%">
-      <img src="screenshots/chat.png" alt="Chat Screen" title="Chat Screen"/>
-      <br />
-      <em>Secure Chat</em>
-    </td>
-    <td width="33%">
-      <img src="screenshots/profile.png" alt="Profile Screen" title="Profile Screen"/>
-      <br />
-      <em>Student Profile</em>
-    </td>
-    <td width="33%">
-      <img src="screenshots/add_item.png" alt="Add Item Screen" title="Add Item Screen"/>
-      <br />
-      <em>List Item</em>
+      <em>Add Product</em>
     </td>
   </tr>
 </table>
 
 </div>
 
-> Note: These screenshots showcase the app's dark theme. Light theme is also available.
+> Note: The app features a modern dark theme design optimized for both aesthetics and usability.
+
+## 📲 Try the App
+
+Want to try the app without setting up the development environment? Download our latest release!
+
+### Direct Download
+- 📱 [Download APK](https://github.com/PATELJAY31/trade_final/releases/download/v1.0.0/app-release.apk)
+- 🔄 Version: 1.0.0
+- 📦 Size: ~15MB
+
+### Installation Instructions
+1. Download the APK file
+2. Enable "Install from Unknown Sources" in your Android settings
+3. Open the downloaded APK file
+4. Follow the installation prompts
+5. Launch Campus Trade and start exploring!
+
+> Note: This app is currently available for Android devices only.
 
 ## 🚀 Getting Started
 
@@ -139,8 +144,8 @@ Connect, Trade, and Thrive in Your Campus Community! 🌟
 
 1. **Clone the repository** 📥
 ```bash
-git clone https://github.com/yourusername/campus_trade.git
-cd campus_trade
+git clone https://github.com/PATELJAY31/trade_final.git
+cd trade_final
 ```
 
 2. **Install dependencies** 📦
@@ -151,10 +156,9 @@ flutter pub get
 3. **Configure Firebase** 🔥
 - Create a new Firebase project
 - Add Android app to Firebase project
-- Download `google-services.json` and place it in `android/app/`
+- Download `google-services.json` and replace it in `android/app/`
 - Enable Email/Password and Google Sign-In authentication methods
 - Set up Cloud Firestore with appropriate security rules
-- Configure Firebase Storage
 
 4. **Run the app** 🚀
 ```bash
@@ -168,70 +172,23 @@ flutter run
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    function isVerifiedStudent() {
-      return request.auth != null && 
-             exists(/databases/$(database)/documents/students/$(request.auth.uid));
+    function isAuthenticated() {
+      return request.auth != null;
     }
 
     match /users/{userId} {
-      allow read: if isVerifiedStudent();
+      allow read: if isAuthenticated();
       allow write: if request.auth.uid == userId;
     }
     
     match /products/{productId} {
-      allow read: if isVerifiedStudent();
-      allow create: if isVerifiedStudent();
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
       allow update, delete: if request.auth.uid == resource.data.sellerId;
-    }
-    
-    match /students/{studentId} {
-      allow read: if isVerifiedStudent();
-      allow write: if request.auth.uid == studentId;
-    }
-  }
-}
-
-// 🗄️ Storage rules
-rules_version = '2';
-service firebase.storage {
-  match /b/{bucket}/o {
-    match /products/{userId}/{fileName} {
-      allow read: if request.auth != null;
-      allow write: if request.auth.uid == userId;
     }
   }
 }
 ```
-
-## 📱 Key Features
-
-- 🎓 **Campus-Exclusive**: Only verified students can access the marketplace
-- 💰 **Smart Pricing**: Compare with similar items in your campus
-- 📍 **Location Services**: Find items near your dorm or campus buildings
-- 💬 **In-App Messaging**: Communicate safely within the app
-- 🤝 **Meet-up Spots**: Suggested safe meeting locations on campus
-- 📅 **Availability Scheduler**: Coordinate meetups efficiently
-- 🏷️ **Category Filters**: Find exactly what you need
-- ⭐ **Ratings & Reviews**: Build trust in the community
-
-## 🔧 Troubleshooting
-
-### Common Issues and Solutions
-
-1. **🔄 Build Errors**
-   - Clean the project: `flutter clean`
-   - Get dependencies: `flutter pub get`
-   - Rebuild: `flutter run`
-
-2. **🎓 Student Verification Issues**
-   - Ensure using university email
-   - Check email verification status
-   - Contact support if verification fails
-
-3. **📸 Image Upload Issues**
-   - Check camera/storage permissions
-   - Verify file size limits
-   - Ensure strong internet connection
 
 ## 🤝 Community Guidelines
 
@@ -243,10 +200,10 @@ service firebase.storage {
 
 ## 🆘 Support
 
-We're here to help make campus trading safe and easy!
+Need help? We're here to assist!
 
 - 📧 Email: jaypatel3261@gmail.com
-- 🐛 Report issues on [GitHub](https://github.com/yourusername/campus_trade/issues)
+- 🐛 Report issues on GitHub
 
 ---
 
