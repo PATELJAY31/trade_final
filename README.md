@@ -172,19 +172,69 @@ flutter run
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    // Helper functions
     function isAuthenticated() {
       return request.auth != null;
     }
-
-    match /users/{userId} {
-      allow read: if isAuthenticated();
-      allow write: if request.auth.uid == userId;
-    }
     
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // Products collection rules
     match /products/{productId} {
-      allow read: if isAuthenticated();
+      allow read: if true;
       allow create: if isAuthenticated();
-      allow update, delete: if request.auth.uid == resource.data.sellerId;
+      allow update: if isAuthenticated() && 
+        (resource.data.sellerId == request.auth.uid || 
+         !resource.data.isSold);
+      allow delete: if isAuthenticated() && 
+        resource.data.sellerId == request.auth.uid;
+    }
+
+    // Users collection rules
+    match /users/{userId} {
+      allow read: if true;
+      allow create: if isAuthenticated() && request.auth.uid == userId;
+      allow update: if isOwner(userId);
+      allow delete: if isOwner(userId);
+
+      // User ratings subcollection
+      match /ratings/{ratingId} {
+        allow read: if true;
+        allow create: if isAuthenticated();
+        allow update, delete: if isOwner(userId);
+      }
+    }
+
+    // Messages collection rules
+    match /messages/{messageId} {
+      allow read: if isAuthenticated() &&
+        (resource.data.senderId == request.auth.uid ||
+         resource.data.receiverId == request.auth.uid);
+      allow create: if isAuthenticated() &&
+        request.resource.data.senderId == request.auth.uid;
+      allow update, delete: if false; // Messages cannot be modified or deleted
+    }
+
+    // Conversations collection rules
+    match /conversations/{conversationId} {
+      allow read: if isAuthenticated() &&
+        request.auth.uid in resource.data.participants;
+      allow create: if isAuthenticated() &&
+        request.auth.uid in request.resource.data.participants;
+      allow update: if isAuthenticated() &&
+        request.auth.uid in resource.data.participants;
+      allow delete: if false; // Conversations cannot be deleted
+
+      // Messages subcollection in conversations
+      match /messages/{messageId} {
+        allow read: if isAuthenticated() &&
+          request.auth.uid in get(/databases/$(database)/documents/conversations/$(conversationId)).data.participants;
+        allow create: if isAuthenticated() &&
+          request.auth.uid in get(/databases/$(database)/documents/conversations/$(conversationId)).data.participants;
+        allow update, delete: if false; // Chat messages cannot be modified or deleted
+      }
     }
   }
 }
