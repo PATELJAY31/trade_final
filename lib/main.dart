@@ -76,10 +76,9 @@ class MyApp extends StatelessWidget {
           create: (context) {
             final authService = Provider.of<AuthService>(context, listen: false);
             if (authService.currentUser != null) {
-              final databaseService = DatabaseService();
-              return databaseService.userStream(authService.currentUser!.uid);
+              return DatabaseService().userStream(authService.currentUser!.uid);
             }
-            return Stream.value(null);
+            return Stream<AppUser?>.value(null);
           },
           initialData: null,
         ),

@@ -1,5 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../models/user.dart';
+import '../models/app_user.dart';
 import '../models/product.dart';
 import '../models/message.dart';
 import '../models/conversation.dart';
@@ -8,10 +8,10 @@ class DatabaseService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
 
   // Collection References
-  CollectionReference get usersRef => _db.collection('users');
-  CollectionReference get productsRef => _db.collection('products');
-  CollectionReference get messagesRef => _db.collection('messages');
-  CollectionReference get conversationsRef => _db.collection('conversations');
+  CollectionReference<Map<String, dynamic>> get usersRef => _db.collection('users');
+  CollectionReference<Map<String, dynamic>> get productsRef => _db.collection('products');
+  CollectionReference<Map<String, dynamic>> get messagesRef => _db.collection('messages');
+  CollectionReference<Map<String, dynamic>> get conversationsRef => _db.collection('conversations');
 
   // User Methods
   Future<void> createUser(AppUser user) async {
@@ -19,11 +19,16 @@ class DatabaseService {
   }
 
   Stream<AppUser?> userStream(String uid) {
-    return usersRef.doc(uid).snapshots().map((doc) {
-      if (doc.exists) {
-        return AppUser.fromDocument(doc);
+    return usersRef.doc(uid).snapshots().map((DocumentSnapshot<Map<String, dynamic>> doc) {
+      if (!doc.exists) {
+        return null;
       }
-      return null;
+      try {
+        return AppUser.fromDocument(doc);
+      } catch (e) {
+        print('Error parsing user document: $e');
+        return null;
+      }
     });
   }
 

@@ -68,7 +68,29 @@ class _ProfileScreenState extends State<ProfileScreen>
   @override
   Widget build(BuildContext context) {
     final user = Provider.of<AppUser?>(context);
-    if (user == null) return Center(child: CircularProgressIndicator());
+    final authService = Provider.of<AuthService>(context);
+
+    // If not logged in, redirect to login
+    if (authService.currentUser == null) {
+      Future.microtask(() => Navigator.of(context).pushReplacementNamed('/login'));
+      return Container(); // Return empty container while redirecting
+    }
+
+    // Show loading while waiting for user data
+    if (user == null) {
+      return Scaffold(
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(height: 16),
+              Text('Loading profile...'),
+            ],
+          ),
+        ),
+      );
+    }
 
     return Scaffold(
       body: RefreshIndicator(
