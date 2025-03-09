@@ -18,6 +18,15 @@ class DatabaseService {
     await usersRef.doc(user.uid).set(user.toMap());
   }
 
+  Stream<AppUser?> userStream(String uid) {
+    return usersRef.doc(uid).snapshots().map((doc) {
+      if (doc.exists) {
+        return AppUser.fromDocument(doc);
+      }
+      return null;
+    });
+  }
+
   Future<bool> checkUserExists(String uid) async {
     DocumentSnapshot doc = await usersRef.doc(uid).get();
     return doc.exists;
@@ -59,11 +68,38 @@ class DatabaseService {
 
   Future<String> addProduct(Product product) async {
     try {
-      DocumentReference docRef = await productsRef.add(product.toFirestore());
+      print('DatabaseService: Starting to add product');
+      print('DatabaseService: Product data: ${product.toFirestore()}');
+
+      // Verify Firestore instance
+      if (_db == null) {
+        throw Exception('Firestore instance is null');
+      }
+
+      // Verify collection reference
+      final productsCollection = _db.collection('products');
+      if (productsCollection == null) {
+        throw Exception('Products collection reference is null');
+      }
+
+      print('DatabaseService: Adding document to Firestore...');
+      final docRef = await productsCollection.add(product.toFirestore());
+      print('DatabaseService: Document added with ID: ${docRef.id}');
+
+      // Verify the document was created
+      final docSnapshot = await docRef.get();
+      if (!docSnapshot.exists) {
+        throw Exception('Document was not created successfully');
+      }
+
       return docRef.id;
-    } catch (e) {
-      print('Error adding product: $e');
-      throw Exception('Failed to add product');
+    } catch (e, stackTrace) {
+      print('DatabaseService Error: $e');
+      print('Stack trace: $stackTrace');
+      if (e.toString().contains('permission-denied')) {
+        throw Exception('Permission denied. Please check if you are logged in.');
+      }
+      throw Exception('Failed to add product: $e');
     }
   }
 
@@ -175,6 +211,115 @@ class DatabaseService {
     } catch (e) {
       print('Error fetching conversations: $e');
       return [];
+    }
+  }
+
+  // User Stats Methods
+  Future<Map<String, dynamic>> getUserStats(String userId) async {
+    try {
+      // Get active listings count
+      final activeListings = await productsRef
+          .where('sellerId', isEqualTo: userId)
+          .where('isSold', isEqualTo: false)
+          .count()
+          .get();
+
+      // Get sold items count and total earnings
+      final soldProducts = await productsRef
+          .where('sellerId', isEqualTo: userId)
+          .where('isSold', isEqualTo: true)
+          .get();
+
+      double totalEarnings = 0;
+      for (var doc in soldProducts.docs) {
+        totalEarnings += (doc.data() as Map<String, dynamic>)['price'] ?? 0;
+      }
+
+      // Get user ratings
+      final ratingsSnapshot = await usersRef
+          .doc(userId)
+          .collection('ratings')
+          .get();
+
+      double totalRating = 0;
+      int totalRatings = ratingsSnapshot.docs.length;
+
+      for (var doc in ratingsSnapshot.docs) {
+        totalRating += (doc.data()['rating'] ?? 0).toDouble();
+      }
+
+      double averageRating = totalRatings > 0 ? totalRating / totalRatings : 0;
+
+      return {
+        'activeListings': activeListings.count,
+        'soldItems': soldProducts.docs.length,
+        'totalEarnings': totalEarnings,
+        'rating': averageRating,
+        'totalRatings': totalRatings,
+      };
+    } catch (e) {
+      print('Error getting user stats: $e');
+      return {
+        'activeListings': 0,
+        'soldItems': 0,
+        'totalEarnings': 0.0,
+        'rating': 0.0,
+        'totalRatings': 0,
+      };
+    }
+  }
+
+  Stream<List<Product>> getSoldProducts(String userId) {
+    return productsRef
+        .where('sellerId', isEqualTo: userId)
+        .where('isSold', isEqualTo: true)
+        .orderBy('soldAt', descending: true)
+        .snapshots()
+        .map((snapshot) {
+          return snapshot.docs.map((doc) => Product.fromFirestore(doc)).toList();
+        });
+  }
+
+  Stream<List<Product>> getPurchasedProducts(String userId) {
+    return productsRef
+        .where('buyerId', isEqualTo: userId)
+        .where('isSold', isEqualTo: true)
+        .orderBy('soldAt', descending: true)
+        .snapshots()
+        .map((snapshot) {
+          return snapshot.docs.map((doc) => Product.fromFirestore(doc)).toList();
+        });
+  }
+
+  Future<void> rateUser(String userId, String raterId, double rating, String comment) async {
+    try {
+      await usersRef.doc(userId).collection('ratings').add({
+        'rating': rating,
+        'comment': comment,
+        'raterId': raterId,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+
+      // Update user's average rating
+      final stats = await getUserStats(userId);
+      await usersRef.doc(userId).update({
+        'averageRating': stats['rating'],
+        'totalRatings': stats['totalRatings'],
+      });
+    } catch (e) {
+      print('Error rating user: $e');
+      throw Exception('Failed to submit rating');
+    }
+  }
+
+  Future<void> incrementProductViews(String productId) async {
+    try {
+      await productsRef.doc(productId).update({
+        'views': FieldValue.increment(1),
+      });
+    } catch (e) {
+      print('Error incrementing product views: $e');
+      // Don't throw here as this is not critical
     }
   }
 }

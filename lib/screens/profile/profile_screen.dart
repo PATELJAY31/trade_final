@@ -239,7 +239,7 @@ class _ProfileScreenState extends State<ProfileScreen>
           _buildVerticalDivider(),
           _buildStatItem(
             'Earnings',
-            '\$${_userStats['totalEarnings'].toStringAsFixed(2)}',
+            '₹${_userStats['totalEarnings'].toStringAsFixed(2)}',
             Icons.attach_money,
           ),
         ],
@@ -435,7 +435,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                   ),
                   SizedBox(height: 4),
                   Text(
-                    '\$${product.price.toStringAsFixed(2)}',
+                    '₹${product.price.toStringAsFixed(2)}',
                     style: TextStyle(
                       fontSize: 14,
                       color: Theme.of(context).primaryColor,
@@ -509,7 +509,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                     ),
                     SizedBox(height: 4),
                     Text(
-                      '\$${product.price.toStringAsFixed(2)}',
+                      '₹${product.price.toStringAsFixed(2)}',
                       style: TextStyle(
                         color: Theme.of(context).primaryColor,
                         fontWeight: FontWeight.bold,
@@ -592,7 +592,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                     ),
                     SizedBox(height: 4),
                     Text(
-                      '\$${product.price.toStringAsFixed(2)}',
+                      '₹${product.price.toStringAsFixed(2)}',
                       style: TextStyle(
                         color: Theme.of(context).primaryColor,
                         fontWeight: FontWeight.bold,

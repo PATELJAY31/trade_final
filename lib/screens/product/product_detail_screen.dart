@@ -144,7 +144,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
               ),
               SizedBox(height: 10),
               Text(
-                '\$${widget.product.price.toStringAsFixed(2)}',
+                '₹${widget.product.price.toStringAsFixed(2)}',
                 style: TextStyle(
                   fontSize: 20,
                   color: Colors.green,

@@ -9,6 +9,7 @@
    import 'package:provider/provider.dart';
    import '../../services/auth_service.dart';
    import '../../widgets/custom_button.dart';
+   import 'package:cloud_firestore/cloud_firestore.dart';
 
    class AddProductScreen extends StatefulWidget {
      @override
@@ -21,12 +22,10 @@
      final _descriptionController = TextEditingController();
      final _priceController = TextEditingController();
      final _locationController = TextEditingController();
+     final _imageUrlController = TextEditingController();  // New controller for image URL
      String _selectedCategory = 'Others';
      bool _isLoading = false;
      String? _errorMessage;
-     File? _selectedImage;
-     final _imagePicker = ImagePicker();
-     final _storageService = StorageService();
 
      final List<String> _categories = [
        'Textbooks',
@@ -43,126 +42,14 @@
        _descriptionController.dispose();
        _priceController.dispose();
        _locationController.dispose();
+       _imageUrlController.dispose();  // Dispose the new controller
        super.dispose();
      }
 
-     Future<void> _pickImage() async {
-       try {
-         // Reset any previous error message
-         setState(() {
-           _errorMessage = null;
-         });
-
-         // Show image source selection dialog
-         final ImageSource? source = await showDialog<ImageSource>(
-           context: context,
-           builder: (BuildContext context) => AlertDialog(
-             title: Text('Select Image Source'),
-             content: Column(
-               mainAxisSize: MainAxisSize.min,
-               children: [
-                 ListTile(
-                   leading: Icon(Icons.photo_library),
-                   title: Text('Gallery'),
-                   onTap: () => Navigator.pop(context, ImageSource.gallery),
-                 ),
-                 ListTile(
-                   leading: Icon(Icons.camera_alt),
-                   title: Text('Camera'),
-                   onTap: () => Navigator.pop(context, ImageSource.camera),
-                 ),
-               ],
-             ),
-           ),
-         );
-
-         if (source == null) return;
-
-         // Request permission and pick image
-         final XFile? pickedFile = await _imagePicker.pickImage(
-           source: source,
-           maxWidth: 1024,
-           maxHeight: 1024,
-           imageQuality: 85,
-           requestFullMetadata: false,
-         ).timeout(
-           Duration(seconds: 30),
-           onTimeout: () {
-             throw Exception('Image picking timed out. Please try again.');
-           },
-         );
-
-         if (pickedFile != null) {
-           setState(() {
-             _selectedImage = File(pickedFile.path);
-           });
-         }
-       } on PlatformException catch (e) {
-         print('Platform Exception during image pick: $e');
-         String errorMessage = 'Failed to pick image';
-         
-         if (e.code == 'photo_access_denied') {
-           errorMessage = 'Please grant photo access permission in your device settings';
-         } else if (e.code == 'camera_access_denied') {
-           errorMessage = 'Please grant camera access permission in your device settings';
-         } else if (e.code == 'channel-error') {
-           // Retry the operation after a short delay
-           await Future.delayed(Duration(milliseconds: 500));
-           try {
-             final XFile? pickedFile = await _imagePicker.pickImage(
-               source: ImageSource.gallery,
-               maxWidth: 1024,
-               maxHeight: 1024,
-               imageQuality: 85,
-               requestFullMetadata: false,
-             );
-             
-             if (pickedFile != null) {
-               setState(() {
-                 _selectedImage = File(pickedFile.path);
-               });
-               return;
-             }
-           } catch (retryError) {
-             print('Retry failed: $retryError');
-             errorMessage = 'Please try again or choose a different image';
-           }
-         }
-
-         if (mounted) {
-           ScaffoldMessenger.of(context).showSnackBar(
-             SnackBar(
-               content: Text(errorMessage),
-               duration: Duration(seconds: 3),
-               action: SnackBarAction(
-                 label: 'Settings',
-                 onPressed: () {
-                   // You can add logic here to open app settings
-                   // This requires another package like 'app_settings'
-                 },
-               ),
-             ),
-           );
-         }
-       } catch (e) {
-         print('Error picking image: $e');
-         if (mounted) {
-           ScaffoldMessenger.of(context).showSnackBar(
-             SnackBar(
-               content: Text('An error occurred while picking the image. Please try again.'),
-               duration: Duration(seconds: 3),
-             ),
-           );
-         }
-       }
-     }
-
      Future<void> _submitProduct() async {
-       if (!_formKey.currentState!.validate()) return;
-       if (_selectedImage == null) {
-         setState(() {
-           _errorMessage = 'Please select an image';
-         });
+       print('Starting product submission...');
+       if (!_formKey.currentState!.validate()) {
+         print('Form validation failed');
          return;
        }
 
@@ -170,46 +57,165 @@
          _isLoading = true;
          _errorMessage = null;
        });
+       print('Set loading state to true');
 
        try {
+         // Validate price format
+         final price = double.tryParse(_priceController.text.trim());
+         if (price == null || price < 0) {
+           throw Exception('Please enter a valid price');
+         }
+
+         print('Getting current user...');
          final authService = Provider.of<AuthService>(context, listen: false);
          final currentUser = authService.currentUser;
          
          if (currentUser == null) {
            throw Exception('You must be logged in to add a product');
          }
+         print('Current user found: ${currentUser.uid}');
 
-         // Upload image first
-         final imageUrl = await _storageService.uploadProductImage(_selectedImage!, currentUser.uid);
+         // Validate required fields
+         final title = _titleController.text.trim();
+         final description = _descriptionController.text.trim();
+         final location = _locationController.text.trim();
+         final imageUrl = _imageUrlController.text.trim();
 
+         if (title.isEmpty) {
+           throw Exception('Title cannot be empty');
+         }
+
+         if (description.isEmpty) {
+           throw Exception('Description cannot be empty');
+         }
+
+         // Create product with validated data
          final product = Product(
            id: '', // This will be set by Firestore
-           title: _titleController.text.trim(),
-           description: _descriptionController.text.trim(),
-           price: double.parse(_priceController.text),
-           imageUrl: imageUrl,
+           title: title,
+           description: description,
+           price: price,
+           imageUrl: imageUrl,  // Will use default if empty
            sellerId: currentUser.uid,
            sellerName: currentUser.displayName ?? 'Unknown Seller',
            createdAt: DateTime.now(),
            category: _selectedCategory,
-           location: _locationController.text.trim(),
+           location: location,
          );
+         print('Product object created: ${product.toFirestore()}');
 
+         print('Adding product to database...');
          final databaseService = DatabaseService();
-         await databaseService.addProduct(product);
-
-         if (mounted) {
-           Navigator.pop(context);
+         
+         // Check if database service is initialized
+         if (databaseService == null) {
+           throw Exception('Database service not initialized');
          }
-       } catch (e) {
-         setState(() {
-           _errorMessage = e.toString();
-         });
-       } finally {
+
+         final productId = await databaseService.addProduct(product);
+         
+         if (productId == null || productId.isEmpty) {
+           throw Exception('Failed to get product ID from database');
+         }
+         
+         print('Product added successfully with ID: $productId');
+
          if (mounted) {
            setState(() {
              _isLoading = false;
            });
+           print('Reset loading state to false');
+
+           // Show success dialog
+           await showDialog(
+             context: context,
+             barrierDismissible: false,
+             builder: (BuildContext context) {
+               return AlertDialog(
+                 title: Row(
+                   children: [
+                     Icon(Icons.check_circle, color: Colors.green),
+                     SizedBox(width: 8),
+                     Text('Success'),
+                   ],
+                 ),
+                 content: Column(
+                   mainAxisSize: MainAxisSize.min,
+                   crossAxisAlignment: CrossAxisAlignment.start,
+                   children: [
+                     Text('Product added successfully!'),
+                     SizedBox(height: 8),
+                     Text(
+                       'Product ID: $productId',
+                       style: TextStyle(
+                         fontSize: 12,
+                         color: Colors.grey,
+                       ),
+                     ),
+                   ],
+                 ),
+                 actions: [
+                   TextButton(
+                     onPressed: () {
+                       // Clear form fields
+                       _titleController.clear();
+                       _descriptionController.clear();
+                       _priceController.clear();
+                       _locationController.clear();
+                       _imageUrlController.clear();
+                       setState(() {
+                         _selectedCategory = 'Others';
+                       });
+                       Navigator.of(context).pop(); // Close dialog
+                       Navigator.of(context).pop(); // Return to previous screen
+                     },
+                     child: Text('Done'),
+                   ),
+                   TextButton(
+                     onPressed: () {
+                       // Clear form fields
+                       _titleController.clear();
+                       _descriptionController.clear();
+                       _priceController.clear();
+                       _locationController.clear();
+                       _imageUrlController.clear();
+                       setState(() {
+                         _selectedCategory = 'Others';
+                       });
+                       Navigator.of(context).pop(); // Close dialog only
+                     },
+                     child: Text('Add Another'),
+                   ),
+                 ],
+               );
+             },
+           );
+         }
+       } catch (e) {
+         print('Error in _submitProduct: $e');
+         if (mounted) {
+           setState(() {
+             _isLoading = false;
+             _errorMessage = e.toString().replaceAll('Exception: ', '');
+           });
+
+           ScaffoldMessenger.of(context).showSnackBar(
+             SnackBar(
+               content: Text(
+                 'Error: ${_errorMessage}',
+                 style: TextStyle(color: Colors.white),
+               ),
+               backgroundColor: Colors.red,
+               duration: Duration(seconds: 3),
+               action: SnackBarAction(
+                 label: 'Dismiss',
+                 textColor: Colors.white,
+                 onPressed: () {
+                   ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                 },
+               ),
+             ),
+           );
          }
        }
      }
@@ -235,43 +241,25 @@
                        style: TextStyle(color: Colors.red),
                      ),
                    ),
-                 // Image picker section
-                 GestureDetector(
-                   onTap: _pickImage,
-                   child: Container(
-                     height: 200,
-                     decoration: BoxDecoration(
-                       color: Colors.grey[200],
-                       borderRadius: BorderRadius.circular(12),
-                       border: Border.all(color: Colors.grey[300]!),
-                     ),
-                     child: _selectedImage != null
-                         ? ClipRRect(
-                             borderRadius: BorderRadius.circular(12),
-                             child: Image.file(
-                               _selectedImage!,
-                               fit: BoxFit.cover,
-                               width: double.infinity,
-                             ),
-                           )
-                         : Column(
-                             mainAxisAlignment: MainAxisAlignment.center,
-                             children: [
-                               Icon(
-                                 Icons.add_photo_alternate,
-                                 size: 48,
-                                 color: Colors.grey[400],
-                               ),
-                               SizedBox(height: 8),
-                               Text(
-                                 'Tap to add product image',
-                                 style: TextStyle(
-                                   color: Colors.grey[600],
-                                 ),
-                               ),
-                             ],
-                           ),
+                 // Image URL input field
+                 TextFormField(
+                   controller: _imageUrlController,
+                   decoration: InputDecoration(
+                     labelText: 'Image URL (Optional)',
+                     hintText: 'Enter image URL or leave empty for default image',
+                     border: OutlineInputBorder(),
+                     prefixIcon: Icon(Icons.image),
                    ),
+                   keyboardType: TextInputType.url,
+                   validator: (value) {
+                     if (value != null && value.isNotEmpty) {
+                       final uri = Uri.tryParse(value);
+                       if (uri == null || !uri.hasAbsolutePath) {
+                         return 'Please enter a valid URL';
+                       }
+                     }
+                     return null;
+                   },
                  ),
                  SizedBox(height: 16.0),
                  // Category Dropdown
@@ -336,7 +324,7 @@
                    decoration: InputDecoration(
                      labelText: 'Price',
                      border: OutlineInputBorder(),
-                     prefixText: '\$',
+                     prefixText: '₹',
                    ),
                    keyboardType: TextInputType.numberWithOptions(decimal: true),
                    validator: (value) {

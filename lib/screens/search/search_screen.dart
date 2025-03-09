@@ -356,7 +356,7 @@ class _SearchScreenState extends State<SearchScreen> {
                             Row(
                               children: [
                                 Text(
-                                  '\$${product.price.toStringAsFixed(2)}',
+                                  '₹${product.price.toStringAsFixed(2)}',
                                   style: TextStyle(
                                     fontSize: 16,
                                     fontWeight: FontWeight.bold,

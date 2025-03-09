@@ -12,20 +12,31 @@ class Product {
   final DateTime createdAt;
   final String category;
   final String? location;
+  final int views;
+  final String? buyerId;
+  final String? buyerName;
+  final DateTime? soldAt;
+
+  // Default image URL for products
+  static const String defaultImageUrl = 'https://via.placeholder.com/400x400?text=Product+Image';
 
   Product({
     required this.id,
     required this.title,
     required this.description,
     required this.price,
-    required this.imageUrl,
+    String? imageUrl,  // Make imageUrl optional
     required this.sellerId,
     required this.sellerName,
     this.isSold = false,
     required this.createdAt,
     required this.category,
     this.location,
-  });
+    this.views = 0,
+    this.buyerId,
+    this.buyerName,
+    this.soldAt,
+  }) : this.imageUrl = imageUrl ?? defaultImageUrl;  // Use default if no image URL provided
 
   // Convert Firestore document to Product object
   factory Product.fromFirestore(DocumentSnapshot doc) {
@@ -42,6 +53,10 @@ class Product {
       createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       category: data['category'] ?? 'Others',
       location: data['location'],
+      views: (data['views'] ?? 0).toInt(),
+      buyerId: data['buyerId'],
+      buyerName: data['buyerName'],
+      soldAt: (data['soldAt'] as Timestamp?)?.toDate(),
     );
   }
 
@@ -58,6 +73,10 @@ class Product {
       'createdAt': Timestamp.fromDate(createdAt),
       'category': category,
       'location': location,
+      'views': views,
+      'buyerId': buyerId,
+      'buyerName': buyerName,
+      'soldAt': soldAt != null ? Timestamp.fromDate(soldAt!) : null,
     };
   }
 
@@ -74,6 +93,10 @@ class Product {
     DateTime? createdAt,
     String? category,
     String? location,
+    int? views,
+    String? buyerId,
+    String? buyerName,
+    DateTime? soldAt,
   }) {
     return Product(
       id: id ?? this.id,
@@ -87,6 +110,10 @@ class Product {
       createdAt: createdAt ?? this.createdAt,
       category: category ?? this.category,
       location: location ?? this.location,
+      views: views ?? this.views,
+      buyerId: buyerId ?? this.buyerId,
+      buyerName: buyerName ?? this.buyerName,
+      soldAt: soldAt ?? this.soldAt,
     );
   }
 }
