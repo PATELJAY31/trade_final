@@ -10,6 +10,7 @@
         android:label="tarde_final"
         android:name="${applicationName}"
         android:requestLegacyExternalStorage="true"
+        android:enableOnBackInvokedCallback="true"
         android:icon="@mipmap/ic_launcher">
         <activity
             android:name=".MainActivity"

@@ -10,6 +10,8 @@ class Product {
   final String sellerName;
   final bool isSold;
   final DateTime createdAt;
+  final String category;
+  final String? location;
 
   Product({
     required this.id,
@@ -21,6 +23,8 @@ class Product {
     required this.sellerName,
     this.isSold = false,
     required this.createdAt,
+    required this.category,
+    this.location,
   });
 
   // Convert Firestore document to Product object
@@ -36,6 +40,8 @@ class Product {
       sellerName: data['sellerName'] ?? '',
       isSold: data['isSold'] ?? false,
       createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      category: data['category'] ?? 'Others',
+      location: data['location'],
     );
   }
 
@@ -50,6 +56,8 @@ class Product {
       'sellerName': sellerName,
       'isSold': isSold,
       'createdAt': Timestamp.fromDate(createdAt),
+      'category': category,
+      'location': location,
     };
   }
 
@@ -64,6 +72,8 @@ class Product {
     String? sellerName,
     bool? isSold,
     DateTime? createdAt,
+    String? category,
+    String? location,
   }) {
     return Product(
       id: id ?? this.id,
@@ -75,6 +85,8 @@ class Product {
       sellerName: sellerName ?? this.sellerName,
       isSold: isSold ?? this.isSold,
       createdAt: createdAt ?? this.createdAt,
+      category: category ?? this.category,
+      location: location ?? this.location,
     );
   }
 }

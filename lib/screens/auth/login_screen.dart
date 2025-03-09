@@ -5,7 +5,7 @@ import 'package:provider/provider.dart';
 import '../../services/auth_service.dart';
 import '../../widgets/custom_button.dart';
 import '../../theme/app_theme.dart';
-import '../menu/menu_screen.dart';
+import '../main_screen.dart';
 import 'signup_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -64,7 +64,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
       // Check if the user is properly authenticated
       if (result.user != null) {
         Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (_) => MenuScreen()),
+          MaterialPageRoute(builder: (_) => MainScreen()),
         );
       } else {
         setState(() {
@@ -111,7 +111,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
       if (isAuthenticated) {
         print('Successfully authenticated with Google: ${authService.currentUser?.email}');
         Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (_) => MenuScreen()),
+          MaterialPageRoute(builder: (_) => MainScreen()),
         );
       } else {
         setState(() {
@@ -130,7 +130,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
           final authService = Provider.of<AuthService>(context, listen: false);
           if (authService.currentUser != null) {
             Navigator.of(context).pushReplacement(
-              MaterialPageRoute(builder: (_) => MenuScreen()),
+              MaterialPageRoute(builder: (_) => MainScreen()),
             );
             return;
           }

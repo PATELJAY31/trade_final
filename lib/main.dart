@@ -8,13 +8,7 @@ import 'services/auth_service.dart';
 import 'screens/splash_screen.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/auth/signup_screen.dart';
-import 'screens/menu/menu_screen.dart';
-import 'screens/profile/profile_screen.dart';
-import 'screens/search/search_screen.dart';
-import 'screens/product/product_detail_screen.dart';
-import 'screens/product/add_product_screen.dart';
-import 'screens/messaging/messaging_screen.dart';
-import 'screens/messaging/conversations_screen.dart'; // Import ConversationsScreen
+import 'screens/main_screen.dart';
 import 'theme/app_theme.dart';
 
 void main() async {
@@ -56,19 +50,14 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => AuthService()),
       ],
       child: MaterialApp(
-        title: 'Tarde',
+        title: 'Campus Trade',
         theme: AppTheme.darkTheme,
         home: SplashScreen(),
         debugShowCheckedModeBanner: false,
-        // Add routes for better navigation
         routes: {
           '/login': (context) => LoginScreen(),
           '/signup': (context) => SignupScreen(),
-          '/menu': (context) => MenuScreen(),
-          '/profile': (context) => ProfileScreen(),
-          '/search': (context) => SearchScreen(),
-          '/add_product': (context) => AddProductScreen(),
-          '/conversations': (context) => ConversationsScreen(),
+          '/main': (context) => MainScreen(),
         },
       ),
     );

@@ -20,17 +20,29 @@
      final _titleController = TextEditingController();
      final _descriptionController = TextEditingController();
      final _priceController = TextEditingController();
+     final _locationController = TextEditingController();
+     String _selectedCategory = 'Others';
      bool _isLoading = false;
      String? _errorMessage;
      File? _selectedImage;
      final _imagePicker = ImagePicker();
      final _storageService = StorageService();
 
+     final List<String> _categories = [
+       'Textbooks',
+       'Electronics',
+       'Furniture',
+       'Housing',
+       'Sports',
+       'Others',
+     ];
+
      @override
      void dispose() {
        _titleController.dispose();
        _descriptionController.dispose();
        _priceController.dispose();
+       _locationController.dispose();
        super.dispose();
      }
 
@@ -179,6 +191,8 @@
            sellerId: currentUser.uid,
            sellerName: currentUser.displayName ?? 'Unknown Seller',
            createdAt: DateTime.now(),
+           category: _selectedCategory,
+           location: _locationController.text.trim(),
          );
 
          final databaseService = DatabaseService();
@@ -260,6 +274,34 @@
                    ),
                  ),
                  SizedBox(height: 16.0),
+                 // Category Dropdown
+                 DropdownButtonFormField<String>(
+                   value: _selectedCategory,
+                   decoration: InputDecoration(
+                     labelText: 'Category',
+                     border: OutlineInputBorder(),
+                   ),
+                   items: _categories.map((String category) {
+                     return DropdownMenuItem(
+                       value: category,
+                       child: Text(category),
+                     );
+                   }).toList(),
+                   onChanged: (String? newValue) {
+                     if (newValue != null) {
+                       setState(() {
+                         _selectedCategory = newValue;
+                       });
+                     }
+                   },
+                   validator: (value) {
+                     if (value == null || value.isEmpty) {
+                       return 'Please select a category';
+                     }
+                     return null;
+                   },
+                 ),
+                 SizedBox(height: 16.0),
                  TextFormField(
                    controller: _titleController,
                    decoration: InputDecoration(
@@ -306,6 +348,15 @@
                      }
                      return null;
                    },
+                 ),
+                 SizedBox(height: 16.0),
+                 TextFormField(
+                   controller: _locationController,
+                   decoration: InputDecoration(
+                     labelText: 'Location (Optional)',
+                     border: OutlineInputBorder(),
+                     prefixIcon: Icon(Icons.location_on_outlined),
+                   ),
                  ),
                  SizedBox(height: 24.0),
                  CustomButton(

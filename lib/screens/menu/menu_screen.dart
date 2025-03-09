@@ -18,297 +18,296 @@ class MenuScreen extends StatefulWidget {
 }
 
 class _MenuScreenState extends State<MenuScreen> {
-  int _currentIndex = 0;
   final DatabaseService _databaseService = DatabaseService();
+  final List<String> _categories = [
+    'All', 'Textbooks', 'Electronics', 'Furniture', 'Housing', 'Other'
+  ];
+  String _selectedCategory = 'All';
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      extendBodyBehindAppBar: true,
-      appBar: AppBar(
-        title: Text('Menu'),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        actions: [
-          IconButton(
-            icon: Icon(Icons.logout),
-            onPressed: () async {
-              await Provider.of<AuthService>(context, listen: false).signOut();
-              Navigator.of(context).pushReplacement(
-                MaterialPageRoute(builder: (_) => LoginScreen()),
-              );
-            },
-          ),
-        ],
-      ),
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: AppGradients.backgroundGradient,
-        ),
-        child: StreamBuilder<List<Product>>(
-          stream: _databaseService.productsStream,
-          builder: (context, snapshot) {
-            if (snapshot.hasError) {
-              return Center(
-                child: Text('Error: ${snapshot.error}'),
-              );
-            }
-
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return Center(
-                child: CircularProgressIndicator(),
-              );
-            }
-
-            final products = snapshot.data ?? [];
-
-            if (products.isEmpty) {
-              return Center(
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      body: SafeArea(
+        child: CustomScrollView(
+          slivers: [
+            // Custom App Bar
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
                 child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(
-                      Icons.shopping_basket_outlined,
-                      size: 64,
-                      color: Colors.grey,
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Campus Trade',
+                              style: TextStyle(
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                                color: Theme.of(context).primaryColor,
+                              ),
+                            ),
+                            Text(
+                              'Find what you need',
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: Colors.grey[600],
+                              ),
+                            ),
+                          ],
+                        ),
+                        CircleAvatar(
+                          backgroundColor: Theme.of(context).primaryColor.withOpacity(0.1),
+                          child: IconButton(
+                            icon: Icon(
+                              Icons.logout,
+                              color: Theme.of(context).primaryColor,
+                            ),
+                            onPressed: () async {
+                              await Provider.of<AuthService>(context, listen: false).signOut();
+                              Navigator.of(context).pushReplacement(
+                                MaterialPageRoute(builder: (_) => LoginScreen()),
+                              );
+                            },
+                          ),
+                        ),
+                      ],
                     ),
-                    SizedBox(height: 16),
-                    Text(
-                      'No products available',
-                      style: TextStyle(
-                        fontSize: 18,
-                        color: Colors.grey,
+                    SizedBox(height: 24),
+                    // Categories
+                    Container(
+                      height: 40,
+                      child: ListView.builder(
+                        scrollDirection: Axis.horizontal,
+                        itemCount: _categories.length,
+                        itemBuilder: (context, index) {
+                          final category = _categories[index];
+                          final isSelected = category == _selectedCategory;
+                          return Padding(
+                            padding: EdgeInsets.only(right: 8),
+                            child: GestureDetector(
+                              onTap: () => setState(() => _selectedCategory = category),
+                              child: Container(
+                                padding: EdgeInsets.symmetric(horizontal: 16),
+                                decoration: BoxDecoration(
+                                  color: isSelected
+                                      ? Theme.of(context).primaryColor
+                                      : Theme.of(context).primaryColor.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: Center(
+                                  child: Text(
+                                    category,
+                                    style: TextStyle(
+                                      color: isSelected ? Colors.white : Theme.of(context).primaryColor,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          );
+                        },
                       ),
                     ),
                   ],
                 ),
-              );
-            }
+              ),
+            ),
+            // Products Grid
+            StreamBuilder<List<Product>>(
+              stream: _databaseService.productsStream,
+              builder: (context, snapshot) {
+                if (snapshot.hasError) {
+                  return SliverFillRemaining(
+                    child: Center(
+                      child: Text('Error: ${snapshot.error}'),
+                    ),
+                  );
+                }
 
-            return Padding(
-              padding: EdgeInsets.all(8.0),
-              child: GridView.builder(
-                itemCount: products.length,
-                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  childAspectRatio: 0.75,
-                  crossAxisSpacing: 8,
-                  mainAxisSpacing: 8,
-                ),
-                itemBuilder: (context, index) {
-                  final product = products[index];
-                  final authService = Provider.of<AuthService>(context, listen: false);
-                  final currentUser = authService.currentUser;
-                  bool isSeller = product.sellerId == currentUser?.uid;
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return SliverFillRemaining(
+                    child: Center(
+                      child: CircularProgressIndicator(),
+                    ),
+                  );
+                }
 
-                  return GestureDetector(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => ProductDetailScreen(product: product),
-                        ),
-                      );
-                    },
-                    child: Card(
-                      color: Colors.white.withOpacity(0.9),
-                      elevation: 4.0,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(15),
-                      ),
+                final products = snapshot.data ?? [];
+                final filteredProducts = _selectedCategory == 'All'
+                    ? products
+                    : products.where((p) => p.category == _selectedCategory).toList();
+
+                if (filteredProducts.isEmpty) {
+                  return SliverFillRemaining(
+                    child: Center(
                       child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Expanded(
-                            child: Stack(
-                              fit: StackFit.expand,
-                              children: [
-                                ClipRRect(
-                                  borderRadius: BorderRadius.vertical(top: Radius.circular(15)),
-                                  child: product.imageUrl.isNotEmpty
-                                      ? Image.network(
-                                          product.imageUrl,
-                                          fit: BoxFit.cover,
-                                        )
-                                      : Image.asset(
-                                          'assets/images/default_product.png',
-                                          fit: BoxFit.cover,
-                                        ),
-                                ),
-                                if (product.isSold)
-                                  Container(
-                                    decoration: BoxDecoration(
-                                      color: Colors.black45,
-                                      borderRadius: BorderRadius.vertical(top: Radius.circular(15)),
-                                    ),
-                                    child: Center(
-                                      child: Text(
-                                        'SOLD',
-                                        style: TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 24,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                              ],
-                            ),
+                          Icon(
+                            Icons.shopping_bag_outlined,
+                            size: 64,
+                            color: Colors.grey,
                           ),
-                          Padding(
-                            padding: EdgeInsets.all(8.0),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  product.title,
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                                SizedBox(height: 4),
-                                Text(
-                                  '\$${product.price.toStringAsFixed(2)}',
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    color: Colors.green,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                SizedBox(height: 8),
-                                SizedBox(
-                                  width: double.infinity,
-                                  child: ElevatedButton(
-                                    onPressed: isSeller || product.isSold
-                                        ? null
-                                        : () => _buyProduct(product),
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: isSeller
-                                          ? Colors.grey
-                                          : product.isSold
-                                              ? Colors.red
-                                              : Colors.blue,
-                                      padding: EdgeInsets.symmetric(vertical: 8),
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                    ),
-                                    child: Text(
-                                      isSeller
-                                          ? 'Your Product'
-                                          : product.isSold
-                                              ? 'Sold'
-                                              : 'Buy Now',
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 14,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ],
+                          SizedBox(height: 16),
+                          Text(
+                            'No items available',
+                            style: TextStyle(
+                              fontSize: 18,
+                              color: Colors.grey,
                             ),
                           ),
                         ],
                       ),
                     ),
                   );
-                },
-              ),
-            );
-          },
+                }
+
+                return SliverPadding(
+                  padding: EdgeInsets.all(16),
+                  sliver: SliverGrid(
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2,
+                      childAspectRatio: 0.75,
+                      crossAxisSpacing: 16,
+                      mainAxisSpacing: 16,
+                    ),
+                    delegate: SliverChildBuilderDelegate(
+                      (context, index) {
+                        final product = filteredProducts[index];
+                        return _buildProductCard(product);
+                      },
+                      childCount: filteredProducts.length,
+                    ),
+                  ),
+                );
+              },
+            ),
+          ],
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: Colors.blue,
-        child: Icon(Icons.add),
+      floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => AddProductScreen()),
-          );
+          Navigator.pushNamed(context, '/add_product');
         },
-      ),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _currentIndex,
-        onTap: _onTabTapped,
-        type: BottomNavigationBarType.fixed,
-        selectedItemColor: Colors.blue,
-        unselectedItemColor: Colors.grey,
-        items: [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home),
-            label: 'Home',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.search),
-            label: 'Search',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.message),
-            label: 'Messages',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person),
-            label: 'Profile',
-          ),
-        ],
+        icon: Icon(Icons.add),
+        label: Text('List Item'),
+        backgroundColor: Theme.of(context).primaryColor,
       ),
     );
   }
 
-  Future<void> _buyProduct(Product product) async {
-    try {
-      final authService = Provider.of<AuthService>(context, listen: false);
-      if (authService.currentUser == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Please sign in to buy products')),
-        );
-        return;
-      }
-
-      await _databaseService.markProductAsSold(product.id, authService.currentUser!.uid);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Product purchased successfully!')),
-      );
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to purchase product: ${e.toString()}')),
-      );
-    }
-  }
-
-  void _onTabTapped(int index) {
-    setState(() {
-      _currentIndex = index;
-    });
-    switch (index) {
-      case 0:
-        // Home Tab - Already in Home, no action needed
-        break;
-      case 1:
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => SearchScreen()),
-        );
-        break;
-      case 2:
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => ConversationsScreen()),
-        );
-        break;
-      case 3:
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => ProfileScreen()),
-        );
-        break;
-      default:
-        break;
-    }
+  Widget _buildProductCard(Product product) {
+    return GestureDetector(
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => ProductDetailScreen(product: product),
+        ),
+      ),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Theme.of(context).cardColor,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 8,
+              offset: Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Product Image
+            Expanded(
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+                  image: DecorationImage(
+                    image: NetworkImage(product.imageUrl),
+                    fit: BoxFit.cover,
+                  ),
+                ),
+                child: product.isSold
+                    ? Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+                          color: Colors.black.withOpacity(0.5),
+                        ),
+                        child: Center(
+                          child: Text(
+                            'SOLD',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 18,
+                            ),
+                          ),
+                        ),
+                      )
+                    : null,
+              ),
+            ),
+            // Product Info
+            Padding(
+              padding: EdgeInsets.all(12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    product.title,
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  SizedBox(height: 4),
+                  Text(
+                    '\$${product.price.toStringAsFixed(2)}',
+                    style: TextStyle(
+                      color: Theme.of(context).primaryColor,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
+                  ),
+                  SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.location_on,
+                        size: 14,
+                        color: Colors.grey,
+                      ),
+                      SizedBox(width: 4),
+                      Expanded(
+                        child: Text(
+                          product.location ?? 'On Campus',
+                          style: TextStyle(
+                            color: Colors.grey,
+                            fontSize: 12,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

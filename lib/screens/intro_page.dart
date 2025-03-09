@@ -14,7 +14,7 @@ class _IntroPageState extends State<IntroPage> {
 
   final List<OnboardingItem> _items = [
     OnboardingItem(
-      title: 'Welcome to Tarde',
+      title: 'Welcome to Campus Trade',
       description: 'Your personal shopping assistant that helps you find the best deals',
       icon: Icons.shopping_bag_outlined,
     ),

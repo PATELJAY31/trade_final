@@ -5,6 +5,7 @@ import '../services/auth_service.dart';
 import 'intro_page.dart';
 import 'auth/login_screen.dart';
 import 'menu/menu_screen.dart';
+import 'main_screen.dart';
 
 class SplashScreen extends StatefulWidget {
   @override
@@ -71,7 +72,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
       // Check authentication state
       if (authService.currentUser != null) {
         Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (_) => MenuScreen()),
+          MaterialPageRoute(builder: (_) => MainScreen()),
         );
       } else {
         Navigator.of(context).pushReplacement(
@@ -110,7 +111,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                     ),
                     SizedBox(height: 20),
                     Text(
-                      'Tarde',
+                      'Campus',
                       style: TextStyle(
                         fontSize: 40,
                         fontWeight: FontWeight.bold,

@@ -14,7 +14,7 @@ class DatabaseService {
   CollectionReference get conversationsRef => _db.collection('conversations');
 
   // User Methods
-  Future<void> createUser(UserModel user) async {
+  Future<void> createUser(AppUser user) async {
     await usersRef.doc(user.uid).set(user.toMap());
   }
 
@@ -23,12 +23,12 @@ class DatabaseService {
     return doc.exists;
   }
 
-  Future<UserModel> getUser(String uid) async {
+  Future<AppUser> getUser(String uid) async {
     DocumentSnapshot doc = await usersRef.doc(uid).get();
-    return UserModel.fromDocument(doc);
+    return AppUser.fromDocument(doc);
   }
 
-  Future<void> updateUser(UserModel user) async {
+  Future<void> updateUser(AppUser user) async {
     await usersRef.doc(user.uid).update(user.toMap());
   }
 
@@ -50,6 +50,11 @@ class DatabaseService {
         .map((snapshot) {
           return snapshot.docs.map((doc) => Product.fromFirestore(doc)).toList();
         });
+  }
+
+  // Alias for getSellerProducts to maintain compatibility
+  Stream<List<Product>> getUserProducts(String userId) {
+    return getSellerProducts(userId);
   }
 
   Future<String> addProduct(Product product) async {
