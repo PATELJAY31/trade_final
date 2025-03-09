@@ -116,9 +116,9 @@ Connect, Trade, and Thrive in Your Campus Community! 🌟
 Want to try the app without setting up the development environment? Download our latest release!
 
 ### Direct Download
-- 📱 [Download APK](https://github.com/PATELJAY31/trade_final/app-release.apk)
+- 📱 [Download APK](https://github.com/PATELJAY31/trade_final/blob/main/app-release.apk)
 - 🔄 Version: 1.0.0
-- 📦 Size: ~15MB
+- 📦 Size: ~21MB
 
 ### Installation Instructions
 1. Download the APK file
